@@ -1,0 +1,95 @@
+/**
+ * 页面转场：后台内容区渐变上移，手机页面按前进/后退方向滑动。
+ * 只动画 opacity 与 transform，避免触发布局重排。
+ */
+
+/* 后台一级页面切换：进入 180ms，退出 100ms */
+.page-fade-enter-active {
+  transition: opacity var(--dur-enter) var(--ease-out),
+    transform var(--dur-enter) var(--ease-out);
+}
+
+.page-fade-leave-active {
+  transition: opacity var(--dur-exit) var(--ease-standard),
+    transform var(--dur-exit) var(--ease-standard);
+}
+
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* 手机前进：新页面自右侧轻微滑入 */
+.slide-forward-enter-active {
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+}
+
+.slide-forward-leave-active {
+  transition: opacity 120ms var(--ease-standard), transform 120ms var(--ease-standard);
+}
+
+.slide-forward-enter-from {
+  opacity: 0;
+  transform: translateX(24px);
+}
+
+.slide-forward-leave-to {
+  opacity: 0;
+  transform: translateX(-12px);
+}
+
+/* 手机返回：反向 */
+.slide-back-enter-active {
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+}
+
+.slide-back-leave-active {
+  transition: opacity 120ms var(--ease-standard), transform 120ms var(--ease-standard);
+}
+
+.slide-back-enter-from {
+  opacity: 0;
+  transform: translateX(-24px);
+}
+
+.slide-back-leave-to {
+  opacity: 0;
+  transform: translateX(12px);
+}
+
+/* 弹窗内区块：轻淡入 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--dur-enter) var(--ease-standard);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 减少动态效果：关闭位移和缩放，保留不透明度变化 */
+@media (prefers-reduced-motion: reduce) {
+  .page-fade-enter-from,
+  .page-fade-leave-to,
+  .slide-forward-enter-from,
+  .slide-forward-leave-to,
+  .slide-back-enter-from,
+  .slide-back-leave-to {
+    transform: none;
+  }
+
+  .page-fade-enter-active,
+  .page-fade-leave-active,
+  .slide-forward-enter-active,
+  .slide-forward-leave-active,
+  .slide-back-enter-active,
+  .slide-back-leave-active {
+    transition-duration: 1ms;
+  }
+}
