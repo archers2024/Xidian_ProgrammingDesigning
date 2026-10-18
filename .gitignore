@@ -1,0 +1,32 @@
+# Backend build output
+backend/target/
+
+# Frontend dependencies and generated output
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.vite/
+frontend/test-results/
+frontend/playwright-report/
+*.tsbuildinfo
+
+# Local environment files; committed examples contain placeholders only
+.env
+.env.*
+!.env.example
+!.env.development
+!.env.production
+!.env.test
+
+# Runtime data, temporary work, verification output and submission bundles
+/runtime/
+/artifacts/
+/releases/
+/.tmp/
+*.log
+
+# Local editor and OS files
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
