@@ -105,7 +105,7 @@ async function submit(): Promise<void> {
         </ul>
       </div>
 
-      <p class="login__brand-foot">程序设计实训大作业 · 前端框架 v0.1</p>
+      <p class="login__brand-foot">程序设计实训大作业 · 高校学生活动全流程管理系统</p>
     </section>
 
     <section class="login__panel">
@@ -168,8 +168,9 @@ async function submit(): Promise<void> {
           </ElButton>
         </ElForm>
 
-        <p v-if="mockMode" class="login__mock">
-          当前为模拟模式，演示账号 <strong>admin</strong> / <strong>admin123</strong>
+        <p class="login__mock">
+          演示账号 <strong>admin</strong> / <strong>admin123</strong>
+          <template v-if="mockMode">。当前为模拟模式，刷新页面会恢复初始数据。</template>
         </p>
       </div>
     </section>

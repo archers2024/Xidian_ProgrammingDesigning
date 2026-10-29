@@ -17,8 +17,10 @@ export interface CheckinSummary {
   activityId: string
   registeredCount: number
   checkedInCount: number
+  sessionId: string | null
   sessionMode: CheckinMode | null
   sessionEnabled: boolean
+  windowStart: IsoDateTime | null
   windowEnd: IsoDateTime | null
 }
 

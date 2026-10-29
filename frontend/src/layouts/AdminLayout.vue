@@ -118,7 +118,7 @@ function handleCommand(command: string): void {
           <AppIcon name="external" :size="15" />
           查看演示宣传页
         </RouterLink>
-        <p class="admin-sidebar__version">前端框架 v0.1</p>
+        <p class="admin-sidebar__version">校园活动管理</p>
       </div>
     </aside>
 

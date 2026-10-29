@@ -23,12 +23,12 @@ import AppIcon from '@/components/common/AppIcon.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingSkeleton from '@/components/common/LoadingSkeleton.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import PlaceholderPanel from '@/components/common/PlaceholderPanel.vue'
+import ActivityFilesPanel from '@/components/activity/ActivityFilesPanel.vue'
 import { createActivity, fetchActivityDetail, updateActivity } from '@/api/admin/activity'
 import { fetchActivityTypes } from '@/api/public/catalog'
 import { ApiError } from '@/api/http'
 import { useAsyncData } from '@/composables/useAsyncData'
-import type { ActivityFormPayload } from '@/types/activity'
+import type { ActivityFormPayload, AttachmentSummary } from '@/types/activity'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,6 +47,8 @@ const loading = ref(false)
 const loadError = ref<ApiError | null>(null)
 const snapshot = ref('')
 const allowLeave = ref(false)
+const coverUrl = ref<string | null>(null)
+const attachments = ref<AttachmentSummary[]>([])
 
 const form = reactive<{
   name: string
@@ -160,6 +162,8 @@ async function loadDetail(): Promise<void> {
       liveUrl: detail.liveUrl ?? '',
     })
     version.value = detail.version
+    coverUrl.value = detail.coverUrl
+    attachments.value = detail.attachments
     step.value = 0
     snapshot.value = JSON.stringify(form)
   } catch (caught) {
@@ -168,6 +172,12 @@ async function loadDetail(): Promise<void> {
   } finally {
     loading.value = false
   }
+}
+
+async function refreshFiles(): Promise<void> {
+  const detail = await fetchActivityDetail(activityId.value)
+  coverUrl.value = detail.coverUrl
+  attachments.value = detail.attachments
 }
 
 onMounted(() => {
@@ -426,15 +436,16 @@ onBeforeRouteLeave(async () => {
             />
           </ElFormItem>
 
-          <PlaceholderPanel
-            title="封面与附件上传"
-            description="上传能力在批次4接入：先保存活动取得 ID，再上传封面与附件；部分文件失败时保留草稿并列出失败项。"
-            :pending="[
-              '封面图片上传（仅图片类型，单张不超过 5MB）',
-              '活动附件上传与排序（PDF / DOCX / PPTX，单个不超过 20MB）',
-              '宣传页预览与静态海报导出（可选）',
-            ]"
+          <ActivityFilesPanel
+            v-if="isEdit && activityId"
+            :activity-id="activityId"
+            :cover-url="coverUrl"
+            :attachments="attachments"
+            @changed="refreshFiles"
           />
+          <p v-else class="editor__hint">
+            请先保存草稿。保存后可在此上传封面和附件；某个文件失败时，活动草稿会保留。
+          </p>
 
           <div class="editor__summary">
             <h3 class="editor__summary-title">保存前检查</h3>

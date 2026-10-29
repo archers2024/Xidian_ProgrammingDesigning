@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElButton } from 'element-plus'
 
@@ -7,9 +7,11 @@ import AppIcon from '@/components/common/AppIcon.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingSkeleton from '@/components/common/LoadingSkeleton.vue'
 import { fetchActivityDetail, fetchCheckinSummary } from '@/api/admin/activity'
+import { fetchCheckinChallenge } from '@/api/admin/checkin'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { formatActivityTime } from '@/utils/datetime'
 import { progressPercent } from '@/utils/format'
+import { toQrDataUrl } from '@/utils/qr'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,18 +25,63 @@ const { data, error, loading, run } = useAsyncData(async (signal) => {
   return { activity, summary }
 })
 
-/** 动态码每 30 秒一段；凭证接口接入前先展示倒计时框架 */
 const secondsLeft = ref(30)
+const qrUrl = ref('')
+const qrError = ref('')
 let timer: number | undefined
+let summaryTimer: number | undefined
+let refreshing = false
+
+async function refreshQr(): Promise<void> {
+  const current = data.value?.summary
+  if (!current?.sessionEnabled || !current.sessionId) {
+    qrUrl.value = ''
+    qrError.value = ''
+    return
+  }
+  if (refreshing) return
+  refreshing = true
+  try {
+    const origin = window.location.origin
+    if (current.sessionMode === 'DYNAMIC') {
+      const challenge = await fetchCheckinChallenge(current.sessionId)
+      const link = `${origin}/checkin/${current.sessionId}?token=${encodeURIComponent(challenge.token)}`
+      qrUrl.value = await toQrDataUrl(link, 360)
+      secondsLeft.value = Math.max(1, challenge.refreshAfterSeconds)
+    } else {
+      qrUrl.value = await toQrDataUrl(`${origin}/checkin/${current.sessionId}`, 360)
+      secondsLeft.value = 0
+    }
+    qrError.value = ''
+  } catch (caught) {
+    qrError.value = caught instanceof Error ? caught.message : '二维码刷新失败'
+  } finally {
+    refreshing = false
+  }
+}
+
+watch(data, () => {
+  void refreshQr()
+})
 
 onMounted(() => {
   timer = window.setInterval(() => {
-    secondsLeft.value = secondsLeft.value <= 1 ? 30 : secondsLeft.value - 1
+    if (data.value?.summary.sessionMode !== 'DYNAMIC' || !data.value.summary.sessionEnabled) return
+    if (secondsLeft.value <= 1) {
+      void refreshQr()
+      void run()
+      return
+    }
+    secondsLeft.value -= 1
   }, 1000)
+  summaryTimer = window.setInterval(() => {
+    void run()
+  }, 5000)
 })
 
 onUnmounted(() => {
   window.clearInterval(timer)
+  window.clearInterval(summaryTimer)
 })
 
 const summary = computed(() => data.value?.summary)
@@ -123,18 +170,21 @@ function backToDetail(): void {
                   : '基本签到已开启'
                 : '签到会话尚未开启'
             }}
-            <span class="screen__status-note">签到会话的创建与关闭在批次6接入</span>
+            <span v-if="!sessionEnabled" class="screen__status-note">请先在活动详情里开启签到</span>
           </p>
         </section>
 
         <section class="screen__qr" aria-label="签到二维码区域">
           <div class="screen__qr-frame">
             <div class="screen__qr-placeholder">
-              <AppIcon name="qr" :size="64" :stroke-width="1.2" />
-              <p>动态二维码</p>
-              <span>凭证接口接入后在此展示</span>
+              <img v-if="qrUrl" class="screen__qr-image" :src="qrUrl" alt="签到二维码" />
+              <template v-else>
+                <AppIcon name="qr" :size="64" :stroke-width="1.2" />
+                <p>{{ sessionEnabled ? '正在生成二维码' : '签到未开启' }}</p>
+                <span>{{ qrError || '开启签到后，这里显示给学生扫描的二维码' }}</span>
+              </template>
             </div>
-            <div class="screen__qr-ring" :style="{ '--ring': `${dipPercent}%` }">
+            <div v-if="summary.sessionMode === 'DYNAMIC' && sessionEnabled" class="screen__qr-ring" :style="{ '--ring': `${dipPercent}%` }">
               <span>{{ secondsLeft }}</span>
               <small>秒</small>
             </div>
@@ -143,7 +193,11 @@ function backToDetail(): void {
             学生使用手机扫描大屏二维码，在签到页输入报名手机号完成签到。
           </p>
           <p class="screen__qr-note">
-            当前为框架阶段：二维码编码库与动态凭证将在批次6接入，倒计时按 30 秒周期演示。
+            {{
+              summary.sessionMode === 'BASIC'
+                ? '基本签到使用固定二维码，学生扫码后输入报名手机号。'
+                : '动态码由服务器每 30 秒签发。过期码、关闭会话后的旧码都不能签到。'
+            }}
           </p>
         </section>
       </template>
@@ -151,7 +205,7 @@ function backToDetail(): void {
 
     <footer class="screen__footer">
       <span>高校学生活动全流程管理系统 · 签到大屏</span>
-      <span class="mono">session {{ activityId }} · 前端框架 v0.1</span>
+      <span class="mono">活动 {{ activityId }}</span>
     </footer>
   </div>
 </template>
@@ -346,6 +400,13 @@ function backToDetail(): void {
   gap: var(--space-2);
   color: rgba(238, 242, 251, 0.72);
   text-align: center;
+}
+
+.screen__qr-image {
+  width: min(360px, 70vw);
+  height: auto;
+  background: #fff;
+  border-radius: 12px;
 }
 
 .screen__qr-placeholder p {

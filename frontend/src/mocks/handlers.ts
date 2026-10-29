@@ -324,8 +324,10 @@ const adminActivityRoutes: MockRoute[] = [
         checkedInCount: mockDb.registrations.filter(
           (item) => item.activityId === activity.id && item.checkedInAt !== null,
         ).length,
+        sessionId: session?.id ?? null,
         sessionMode: session?.mode ?? null,
         sessionEnabled: session?.enabled ?? false,
+        windowStart: session?.windowStart ?? null,
         windowEnd: session?.windowEnd ?? null,
       }
       return summary

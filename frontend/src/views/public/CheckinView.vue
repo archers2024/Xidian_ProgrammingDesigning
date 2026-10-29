@@ -1,20 +1,72 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElButton } from 'element-plus'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { ElButton, ElInput } from 'element-plus'
 
 import AppIcon from '@/components/common/AppIcon.vue'
-import PlaceholderPanel from '@/components/common/PlaceholderPanel.vue'
+import { ApiError } from '@/api/http'
+import { fetchCheckinContext, submitCheckin } from '@/api/public/checkin'
+import type { CheckinContext, CheckinResult } from '@/types/checkin'
+import { formatDateTime } from '@/utils/datetime'
 
 const route = useRoute()
-const router = useRouter()
 
 const sessionId = computed(() => String(route.params.sessionId ?? ''))
-const hasToken = computed(() => typeof route.query.token === 'string' && route.query.token.length > 0)
+const token = computed(() => (typeof route.query.token === 'string' ? route.query.token : ''))
+const context = ref<CheckinContext | null>(null)
+const contextError = ref<ApiError | null>(null)
+const loading = ref(true)
+const phone = ref('')
+const submitting = ref(false)
+const submitError = ref('')
+const result = ref<CheckinResult | null>(null)
+const secondsLeft = ref(0)
+let timer: number | undefined
 
-function backToAdmin(): void {
-  void router.push({ name: 'admin-login' })
+async function loadContext(): Promise<void> {
+  loading.value = true
+  contextError.value = null
+  try {
+    context.value = await fetchCheckinContext({
+      sessionId: sessionId.value,
+      token: token.value || undefined,
+    })
+    secondsLeft.value = context.value.expiresInSeconds
+  } catch (caught) {
+    context.value = null
+    contextError.value =
+      caught instanceof ApiError ? caught : new ApiError('UNKNOWN_ERROR', '签到信息加载失败')
+  } finally {
+    loading.value = false
+  }
 }
+
+async function submit(): Promise<void> {
+  submitError.value = ''
+  submitting.value = true
+  try {
+    result.value = await submitCheckin({
+      sessionId: sessionId.value,
+      phone: phone.value.trim(),
+      token: token.value || undefined,
+    })
+  } catch (caught) {
+    submitError.value = caught instanceof ApiError ? caught.message : '签到失败，请稍后重试'
+  } finally {
+    submitting.value = false
+  }
+}
+
+onMounted(() => {
+  void loadContext()
+  timer = window.setInterval(() => {
+    if (secondsLeft.value > 0) secondsLeft.value -= 1
+  }, 1000)
+})
+
+onUnmounted(() => {
+  window.clearInterval(timer)
+})
 </script>
 
 <template>
@@ -26,41 +78,50 @@ function backToAdmin(): void {
         </span>
         <h1 class="checkin__title">活动签到</h1>
         <p class="checkin__lead">
-          你正在通过会场二维码进入签到页。签到需要提供报名时填写的手机号，并校验签到码是否仍在有效期内。
+          请输入报名时填写的手机号。动态二维码过期后需要重新扫描会场上的新码，本页不会自动领取新凭证。
         </p>
 
-        <dl class="checkin__facts">
+        <p v-if="loading" class="checkin__lead">正在核验签到码…</p>
+        <p v-else-if="contextError" class="checkin__warn">{{ contextError.message }}</p>
+
+        <dl v-else-if="context" class="checkin__facts">
           <div>
-            <dt>签到会话</dt>
-            <dd class="mono">{{ sessionId || '未提供' }}</dd>
+            <dt>活动</dt>
+            <dd>{{ context.activityName }}</dd>
           </div>
           <div>
-            <dt>扫码凭证</dt>
-            <dd>
-              <span v-if="hasToken" class="checkin__ok">已携带动态凭证</span>
-              <span v-else class="checkin__warn">缺少凭证，请重新扫描会场二维码</span>
-            </dd>
+            <dt>签到方式</dt>
+            <dd>{{ context.mode === 'DYNAMIC' ? '动态二维码' : '基本签到' }}</dd>
           </div>
           <div>
-            <dt>签到状态</dt>
-            <dd>待接入</dd>
+            <dt>有效至</dt>
+            <dd>{{ formatDateTime(context.validUntil) }} · 剩余 {{ secondsLeft }} 秒</dd>
           </div>
         </dl>
 
-        <PlaceholderPanel
-          class="checkin__panel"
-          title="手机签到流程"
-          description="页面路由、布局与凭证参数解析已经就绪；签到接口与动态码校验在批次6接入，届时无需修改页面结构。"
-          :pending="[
-            '调用打卡上下文接口，校验动态凭证、会话版本与签到时段',
-            '提交姓名手机号完成签到，重复签到返回原签到时间而非新增记录',
-            '30 秒凭证过期后提示重新扫描现场新码，不在公开页面自动领取新凭证',
-          ]"
-        />
+        <form v-if="context && !result" class="checkin__form" @submit.prevent="submit">
+          <label class="checkin__label" for="checkin-phone">报名手机号</label>
+          <ElInput
+            id="checkin-phone"
+            v-model="phone"
+            maxlength="11"
+            placeholder="11 位手机号"
+            size="large"
+          />
+          <p v-if="submitError" class="checkin__warn">{{ submitError }}</p>
+          <div class="checkin__actions">
+            <ElButton type="primary" size="large" native-type="submit" :loading="submitting">
+              提交签到
+            </ElButton>
+          </div>
+        </form>
 
-        <div class="checkin__actions">
-          <ElButton type="primary" size="large" disabled>提交签到（批次6开放）</ElButton>
-          <ElButton text @click="backToAdmin">管理员入口</ElButton>
+        <div v-else-if="result" class="checkin__result">
+          <p class="checkin__ok">
+            {{ result.alreadyCheckedIn ? '你已经签到过了' : '签到成功' }}
+          </p>
+          <p>{{ result.activityName }}</p>
+          <p class="checkin__lead">签到时间 {{ formatDateTime(result.checkedAt) }}</p>
         </div>
       </section>
     </div>
@@ -144,12 +205,25 @@ function backToAdmin(): void {
   text-align: left;
 }
 
+.checkin__form,
+.checkin__result {
+  width: 100%;
+  max-width: 420px;
+  text-align: left;
+}
+
+.checkin__label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
 .checkin__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  margin-top: var(--space-2);
+  margin-top: var(--space-4);
 }
 </style>

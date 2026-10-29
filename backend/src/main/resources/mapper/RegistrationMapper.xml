@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campus.events.registration.RegistrationMapper">
+
+    <select id="listByActivity" resultType="com.campus.events.registration.RegistrationSummaryRow">
+        SELECT
+            r.id,
+            r.participant_name AS name,
+            r.phone,
+            r.college_id,
+            c.name AS college_name,
+            r.created_at AS registered_at,
+            cr.checked_at AS checked_in_at
+        FROM registration r
+        JOIN college c ON c.id = r.college_id
+        LEFT JOIN checkin_record cr ON cr.registration_id = r.id
+        WHERE r.activity_id = #{activityId}
+        ORDER BY r.created_at DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{limit} ROWS ONLY
+    </select>
+
+    <select id="countByActivityId" resultType="long">
+        SELECT COUNT(*) FROM registration WHERE activity_id = #{activityId}
+    </select>
+</mapper>

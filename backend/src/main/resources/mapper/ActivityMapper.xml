@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campus.events.activity.ActivityMapper">
+
+    <sql id="columns">
+        a.id,
+        a.type_id,
+        t.name AS type_name,
+        a.name,
+        a.description,
+        a.location,
+        a.start_at,
+        a.end_at,
+        a.registration_deadline,
+        a.capacity,
+        (SELECT COUNT(*) FROM registration r WHERE r.activity_id = a.id) AS registered_count,
+        a.publication_state,
+        a.published_at,
+        a.live_url,
+        a.cover_storage_key,
+        a.cover_content_type,
+        a.created_by,
+        a.version,
+        a.created_at,
+        a.updated_at,
+        a.deleted_at
+    </sql>
+
+    <sql id="displayStatus">
+        CASE
+            WHEN a.publication_state = 'DRAFT' THEN 'DRAFT'
+            WHEN a.end_at &lt;= #{now} THEN 'ENDED'
+            WHEN a.registration_deadline &lt;= #{now} THEN 'CLOSED'
+            ELSE 'REGISTERING'
+        END
+    </sql>
+
+    <sql id="filters">
+        <if test="keyword != null and keyword != ''">
+            AND (a.name LIKE #{keyword} ESCAPE '!' OR a.location LIKE #{keyword} ESCAPE '!')
+        </if>
+        <if test="typeId != null and typeId != ''">
+            AND a.type_id = #{typeId}
+        </if>
+        <if test="status != null and status != ''">
+            AND (<include refid="displayStatus"/>) = #{status}
+        </if>
+        <if test="dateFrom != null">
+            AND a.start_at &gt;= #{dateFrom}
+        </if>
+        <if test="dateTo != null">
+            AND a.start_at &lt;= #{dateTo}
+        </if>
+    </sql>
+
+    <select id="findById" resultType="com.campus.events.activity.ActivityRow">
+        SELECT <include refid="columns"/>
+        FROM activity a
+        JOIN activity_type t ON t.id = a.type_id
+        WHERE a.id = #{id}
+    </select>
+
+    <!-- H2 不允许 SELECT ... JOIN ... FOR UPDATE。只锁活动行，类型名用标量子查询。 -->
+    <select id="lockById" resultType="com.campus.events.activity.ActivityRow">
+        SELECT
+            a.id,
+            a.type_id,
+            (SELECT t.name FROM activity_type t WHERE t.id = a.type_id) AS type_name,
+            a.name,
+            a.description,
+            a.location,
+            a.start_at,
+            a.end_at,
+            a.registration_deadline,
+            a.capacity,
+            (SELECT COUNT(*) FROM registration r WHERE r.activity_id = a.id) AS registered_count,
+            a.publication_state,
+            a.published_at,
+            a.live_url,
+            a.cover_storage_key,
+            a.cover_content_type,
+            a.created_by,
+            a.version,
+            a.created_at,
+            a.updated_at,
+            a.deleted_at
+        FROM activity a
+        WHERE a.id = #{id}
+        FOR UPDATE
+    </select>
+
+    <select id="search" resultType="com.campus.events.activity.ActivityRow">
+        SELECT <include refid="columns"/>
+        FROM activity a
+        JOIN activity_type t ON t.id = a.type_id
+        WHERE a.deleted_at IS NULL
+        <include refid="filters"/>
+        ORDER BY a.created_at DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{limit} ROWS ONLY
+    </select>
+
+    <select id="countSearch" resultType="long">
+        SELECT COUNT(*)
+        FROM activity a
+        WHERE a.deleted_at IS NULL
+        <include refid="filters"/>
+    </select>
+
+    <select id="countStatus" resultType="com.campus.events.activity.StatusCountRow">
+        SELECT
+            COUNT(*) AS total,
+            COALESCE(SUM(CASE WHEN display_status = 'DRAFT' THEN 1 ELSE 0 END), 0) AS draft,
+            COALESCE(SUM(CASE WHEN display_status = 'REGISTERING' THEN 1 ELSE 0 END), 0) AS registering,
+            COALESCE(SUM(CASE WHEN display_status = 'CLOSED' THEN 1 ELSE 0 END), 0) AS closed,
+            COALESCE(SUM(CASE WHEN display_status = 'ENDED' THEN 1 ELSE 0 END), 0) AS ended
+        FROM (
+            SELECT
+                CASE
+                    WHEN publication_state = 'DRAFT' THEN 'DRAFT'
+                    WHEN end_at &lt;= #{now} THEN 'ENDED'
+                    WHEN registration_deadline &lt;= #{now} THEN 'CLOSED'
+                    ELSE 'REGISTERING'
+                END AS display_status
+            FROM activity
+            WHERE deleted_at IS NULL
+        ) counted
+    </select>
+
+    <select id="recent" resultType="com.campus.events.activity.ActivityRow">
+        SELECT <include refid="columns"/>
+        FROM activity a
+        JOIN activity_type t ON t.id = a.type_id
+        WHERE a.deleted_at IS NULL
+        ORDER BY
+            CASE
+                WHEN a.publication_state = 'DRAFT' THEN 2
+                WHEN a.end_at &lt;= #{now} THEN 3
+                WHEN a.registration_deadline &lt;= #{now} THEN 1
+                ELSE 0
+            END,
+            a.start_at
+        FETCH FIRST 5 ROWS ONLY
+    </select>
+</mapper>

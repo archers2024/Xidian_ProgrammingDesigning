@@ -16,3 +16,17 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+declare module 'qrcode' {
+  interface ToDataUrlOptions {
+    width?: number
+    margin?: number
+    errorCorrectionLevel?: 'L' | 'M' | 'Q' | 'H'
+  }
+
+  const qrcode: {
+    toDataURL(text: string, options?: ToDataUrlOptions): Promise<string>
+  }
+
+  export default qrcode
+}

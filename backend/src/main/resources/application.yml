@@ -1,0 +1,50 @@
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 8h
+      cookie:
+        http-only: true
+        same-site: lax
+
+spring:
+  application:
+    name: campus-events
+  datasource:
+    url: jdbc:h2:file:../runtime/data/campus;MODE=REGULAR;DB_CLOSE_DELAY=-1;AUTO_SERVER=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      schema-locations: classpath:db/schema.sql
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-handlers-package: com.campus.events.common.mybatis
+  configuration:
+    map-underscore-to-camel-case: true
+    jdbc-type-for-null: NULL
+    default-statement-timeout: 20
+
+app:
+  storage-root: ../runtime
+  public-base-url: http://localhost:5173
+  checkin-secret: ${CHECKIN_SECRET:campus-events-dev-checkin-secret-change-me}
+  admin-username: admin
+  admin-password: admin123
+  admin-display-name: 活动管理员
+  seed-demo: true
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss} %5p [%X{requestId}] %m%n"

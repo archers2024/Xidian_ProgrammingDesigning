@@ -58,7 +58,7 @@ const transitionName = computed(() => {
 
     <footer class="public-footer">
       <div class="public-footer__inner">
-        <span>高校学生活动全流程管理系统 · 前端框架 v0.1</span>
+        <span>高校学生活动全流程管理系统</span>
         <RouterLink :to="{ name: 'admin-login' }">管理后台</RouterLink>
       </div>
     </footer>

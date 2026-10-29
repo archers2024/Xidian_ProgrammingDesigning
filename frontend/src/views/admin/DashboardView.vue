@@ -27,8 +27,8 @@ const recent = computed(() => data.value?.recentActivities ?? [])
 
 const demoPromoRoute = { name: 'public-activity-promo', params: { id: 'act-ai-lecture' } }
 const demoScreenRoute = { name: 'admin-checkin-screen', params: { id: 'act-ai-lecture' } }
-/** 演示入口指向模拟数据中的活动，正式环境隐藏 */
-const showDemoLinks = import.meta.env.VITE_USE_MOCK === 'true'
+/** 首次启动会写入这些演示活动编号，可直接打开宣传页和签到大屏 */
+const showDemoLinks = true
 </script>
 
 <template>
@@ -173,11 +173,10 @@ const showDemoLinks = import.meta.env.VITE_USE_MOCK === 'true'
           <section class="app-card app-card--padded dashboard__panel dashboard__note">
             <h2 class="section-title">当前阶段</h2>
             <p>
-              当前交付为前端框架：统一设计变量、路由与布局、接口封装、模拟接口与鉴权流程已经就绪。
-              活动列表、创建与编辑、宣传页、报名页可直接操作；报名名单与签到管理将在后续批次接入。
+              活动、报名、签到和文件都由服务端处理。工作台数字来自概览接口，页面不自行累计。
             </p>
             <p class="dashboard__note-hint">
-              模拟模式下数据保存在内存中，刷新页面会恢复为初始演示数据。
+              演示账号 admin / admin123。首次启动会写入示例活动，之后刷新页面会保留已保存的数据。
             </p>
           </section>
         </aside>

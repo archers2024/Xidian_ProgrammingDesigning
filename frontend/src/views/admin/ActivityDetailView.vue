@@ -3,8 +3,13 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ElButton,
+  ElDatePicker,
+  ElForm,
+  ElFormItem,
   ElMessage,
   ElPagination,
+  ElRadio,
+  ElRadioGroup,
   ElTabPane,
   ElTable,
   ElTableColumn,
@@ -12,17 +17,19 @@ import {
   ElTag,
 } from 'element-plus'
 
+import ActivityFilesPanel from '@/components/activity/ActivityFilesPanel.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingSkeleton from '@/components/common/LoadingSkeleton.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import PlaceholderPanel from '@/components/common/PlaceholderPanel.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
-import { fetchActivityDetail, fetchRegistrations } from '@/api/admin/activity'
+import { fetchActivityDetail, fetchCheckinSummary, fetchRegistrations } from '@/api/admin/activity'
+import { closeCheckinSession, openCheckinSession } from '@/api/admin/checkin'
+import { ApiError } from '@/api/http'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { UNAVAILABLE_REASON_TEXT } from '@/types/activity'
+import type { CheckinMode } from '@/types/checkin'
 import { formatDateTime } from '@/utils/datetime'
-import { formatFileSize } from '@/utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -51,15 +58,83 @@ const registrations = useAsyncData(
   { immediate: false },
 )
 
+const checkinMode = ref<CheckinMode>('DYNAMIC')
+const windowStart = ref('')
+const windowEnd = ref('')
+const opening = ref(false)
+const summary = useAsyncData((signal) => fetchCheckinSummary(activityId.value, signal), {
+  immediate: false,
+})
+
 watch(
   [activeTab, regPage],
   () => {
     if (activeTab.value === 'registrations') void registrations.run()
+    if (activeTab.value === 'checkin') void summary.run()
   },
   { immediate: true },
 )
 
+function pickerValue(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date)
+  const pick = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((part) => part.type === type)?.value ?? '00'
+  return `${pick('year')}-${pick('month')}-${pick('day')}T${pick('hour')}:${pick('minute')}:${pick('second')}+08:00`
+}
+
+async function openSession(): Promise<void> {
+  if (!windowStart.value || !windowEnd.value) {
+    ElMessage.warning('请填写签到起止时间')
+    return
+  }
+  opening.value = true
+  try {
+    await openCheckinSession(activityId.value, {
+      mode: checkinMode.value,
+      windowStart: windowStart.value,
+      windowEnd: windowEnd.value,
+    })
+    ElMessage.success(checkinMode.value === 'DYNAMIC' ? '动态签到已开启' : '基本签到已开启')
+    await summary.run()
+  } catch (caught) {
+    ElMessage.error(caught instanceof ApiError ? caught.message : '开启签到失败')
+  } finally {
+    opening.value = false
+  }
+}
+
+async function closeSession(): Promise<void> {
+  const sessionId = summary.data.value?.sessionId
+  if (!sessionId) return
+  opening.value = true
+  try {
+    await closeCheckinSession(sessionId)
+    ElMessage.success('签到已关闭，旧二维码立即失效')
+    await summary.run()
+  } catch (caught) {
+    ElMessage.error(caught instanceof ApiError ? caught.message : '关闭签到失败')
+  } finally {
+    opening.value = false
+  }
+}
+
 const activity = computed(() => detail.data.value)
+
+watch(activity, (value) => {
+  if (!value || windowStart.value) return
+  windowStart.value = pickerValue(new Date(Date.parse(value.startAt) - 30 * 60 * 1000))
+  windowEnd.value = pickerValue(new Date(Date.parse(value.endAt) + 15 * 60 * 1000))
+})
+
 const published = computed(() => activity.value?.publicationState === 'PUBLISHED')
 const unavailableText = computed(() => {
   const reason = activity.value?.unavailableReason
@@ -231,17 +306,14 @@ async function copyText(value: string | null, label: string): Promise<void> {
                 </dd>
               </div>
               <div class="facts__item facts__item--wide">
-                <dt>活动附件</dt>
+                <dt>封面与附件</dt>
                 <dd>
-                  <ul v-if="activity.attachments.length > 0" class="attachments">
-                    <li v-for="item in activity.attachments" :key="item.id" class="attachments__item">
-                      <AppIcon name="inbox" :size="16" />
-                      <span class="attachments__name">{{ item.originalName }}</span>
-                      <span class="attachments__size mono">{{ formatFileSize(item.sizeBytes) }}</span>
-                      <ElTag size="small" type="info">下载待接入</ElTag>
-                    </li>
-                  </ul>
-                  <span v-else class="text-subtle">暂无附件（上传能力在批次4接入）</span>
+                  <ActivityFilesPanel
+                    :activity-id="activity.id"
+                    :cover-url="activity.coverUrl"
+                    :attachments="activity.attachments"
+                    @changed="detail.run()"
+                  />
                 </dd>
               </div>
             </dl>
@@ -291,22 +363,57 @@ async function copyText(value: string | null, label: string): Promise<void> {
           </ElTabPane>
 
           <ElTabPane label="签到管理" name="checkin">
-            <PlaceholderPanel
-              title="签到会话与动态二维码"
-              description="签到会话、静态/动态模式切换、30 秒动态码签发与撤销在批次6接入；现在可以先查看大屏框架与已签到人数。"
-              :pending="[
-                '创建签到会话并设置签到起止时间（默认活动开始前 30 分钟至结束后 15 分钟）',
-                '动态模式每 30 秒刷新二维码，关闭会话或修改版本后旧码立即失效',
-                '报名名单实时显示签到状态，并支持导出',
-              ]"
-            >
-              <div class="detail__placeholder-actions">
-                <ElButton v-if="published" type="primary" plain @click="openScreen">
-                  <AppIcon name="screen" :size="15" />
-                  <span>打开签到大屏</span>
-                </ElButton>
-              </div>
-            </PlaceholderPanel>
+            <div class="checkin-admin">
+              <p v-if="summary.data.value?.sessionEnabled" class="checkin-admin__status">
+                {{ summary.data.value.sessionMode === 'DYNAMIC' ? '动态签到进行中' : '基本签到进行中' }}
+                · 已签到 {{ summary.data.value.checkedInCount }} / {{ summary.data.value.registeredCount }}
+              </p>
+              <p v-else class="text-subtle">当前没有开启的签到会话。开启新会话会使旧二维码失效。</p>
+
+              <ElForm v-if="published" label-position="top" class="checkin-admin__form">
+                <ElFormItem label="签到方式">
+                  <ElRadioGroup v-model="checkinMode">
+                    <ElRadio value="DYNAMIC">动态二维码，每 30 秒更新</ElRadio>
+                    <ElRadio value="BASIC">基本签到，静态二维码</ElRadio>
+                  </ElRadioGroup>
+                </ElFormItem>
+                <div class="checkin-admin__times">
+                  <ElFormItem label="签到开始">
+                    <ElDatePicker
+                      v-model="windowStart"
+                      type="datetime"
+                      value-format="YYYY-MM-DDTHH:mm:ssZ"
+                      format="YYYY-MM-DD HH:mm"
+                      style="width: 100%"
+                    />
+                  </ElFormItem>
+                  <ElFormItem label="签到结束">
+                    <ElDatePicker
+                      v-model="windowEnd"
+                      type="datetime"
+                      value-format="YYYY-MM-DDTHH:mm:ssZ"
+                      format="YYYY-MM-DD HH:mm"
+                      style="width: 100%"
+                    />
+                  </ElFormItem>
+                </div>
+                <div class="checkin-admin__actions">
+                  <ElButton type="primary" :loading="opening" @click="openSession">开启签到</ElButton>
+                  <ElButton
+                    v-if="summary.data.value?.sessionEnabled"
+                    :disabled="opening"
+                    @click="closeSession"
+                  >
+                    关闭并作废旧码
+                  </ElButton>
+                  <ElButton plain @click="openScreen">
+                    <AppIcon name="screen" :size="15" />
+                    <span>打开签到大屏</span>
+                  </ElButton>
+                </div>
+              </ElForm>
+              <p v-else class="text-subtle">活动发布后才能开启签到。</p>
+            </div>
           </ElTabPane>
         </ElTabs>
       </section>
@@ -470,8 +577,26 @@ async function copyText(value: string | null, label: string): Promise<void> {
   margin-top: var(--space-3);
 }
 
-.detail__placeholder-actions {
-  margin-top: var(--space-2);
+.checkin-admin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.checkin-admin__status {
+  color: var(--success);
+}
+
+.checkin-admin__times {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.checkin-admin__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }
 
 @media (max-width: 767px) {

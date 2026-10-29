@@ -1,0 +1,929 @@
+openapi: 3.0.3
+info:
+  title: 高校学生活动全流程管理系统
+  version: 1.0.0
+  description: |
+    接口前缀 `/api/v1`。成功响应的 `code` 为 `OK`。
+    时间是带时区的 ISO-8601，语义为 Asia/Shanghai。
+    管理端写操作使用会话 Cookie，并在请求头 `X-CSRF-TOKEN` 携带 `GET /auth/csrf` 返回的原始令牌。
+servers:
+  - url: /api/v1
+tags:
+  - name: auth
+  - name: dictionary
+  - name: activity
+  - name: registration
+  - name: checkin
+  - name: file
+  - name: dashboard
+paths:
+  /auth/csrf:
+    get:
+      tags: [auth]
+      summary: 获取 CSRF 令牌
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CsrfToken'
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: 管理员登录
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 登录成功，并更换会话
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResult'
+        '401':
+          $ref: '#/components/responses/Error'
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: 当前管理员
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AdminUser'
+        '401':
+          $ref: '#/components/responses/Error'
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: 退出登录
+      responses:
+        '200':
+          description: data 为 null
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+  /public/activity-types:
+    get:
+      tags: [dictionary]
+      summary: 活动类型
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DictionaryList'
+  /public/colleges:
+    get:
+      tags: [dictionary]
+      summary: 学院
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DictionaryList'
+  /admin/dashboard:
+    get:
+      tags: [dashboard]
+      summary: 工作台统计
+      responses:
+        '200':
+          description: 统计在数据库中完成
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Dashboard'
+  /admin/activities:
+    get:
+      tags: [activity]
+      summary: 活动分页
+      parameters:
+        - $ref: '#/components/parameters/keyword'
+        - $ref: '#/components/parameters/typeId'
+        - $ref: '#/components/parameters/status'
+        - in: query
+          name: dateFrom
+          schema: { type: string, format: date-time }
+        - in: query
+          name: dateTo
+          schema: { type: string, format: date-time }
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: 先筛选再分页
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ActivityPage'
+    post:
+      tags: [activity]
+      summary: 创建草稿
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivityWrite'
+      responses:
+        '200':
+          description: 返回新编号
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [id]
+                        properties:
+                          id: { type: string }
+  /admin/activities/{id}:
+    parameters:
+      - $ref: '#/components/parameters/activityId'
+    get:
+      tags: [activity]
+      summary: 管理端活动详情
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ActivityDetail'
+        '404':
+          $ref: '#/components/responses/Error'
+        '410':
+          description: 已逻辑删除，code 为 ACTIVITY_UNAVAILABLE
+    put:
+      tags: [activity]
+      summary: 修改活动
+      description: 任意展示状态可改。必须携带 version。名额不能小于已报名人数。修改地点或起止时间会关闭当前签到会话。不删除已有报名。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivityWrite'
+      responses:
+        '200':
+          description: 返回更新后的详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ActivityDetail'
+        '409':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [activity]
+      summary: 逻辑删除
+      responses:
+        '200':
+          description: data 为 null
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+  /admin/activities/{id}/publish:
+    parameters:
+      - $ref: '#/components/parameters/activityId'
+    post:
+      tags: [activity]
+      summary: 发布活动
+      description: 已发布时再次调用保持幂等。
+      responses:
+        '200':
+          description: 宣传页与报名页地址
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PublishResult'
+  /public/activities/{id}:
+    parameters:
+      - $ref: '#/components/parameters/activityId'
+    get:
+      tags: [activity]
+      summary: 公开宣传信息
+      security: []
+      description: 草稿或已删除返回 404，code 为 ACTIVITY_UNAVAILABLE。不返回报名名单。
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PublicActivity'
+        '404':
+          $ref: '#/components/responses/Error'
+  /public/activities/{id}/registrations:
+    parameters:
+      - $ref: '#/components/parameters/activityId'
+    post:
+      tags: [registration]
+      summary: 匿名报名
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationCreate'
+      responses:
+        '200':
+          description: 报名成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RegistrationResult'
+        '409':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+  /admin/activities/{id}/registrations:
+    parameters:
+      - $ref: '#/components/parameters/activityId'
+      - $ref: '#/components/parameters/page'
+      - $ref: '#/components/parameters/pageSize'
+    get:
+      tags: [registration]
+      summary: 报名名单
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RegistrationPage'
+  /admin/activities/{id}/cover:
+    parameters:
+      - $ref: '#/components/parameters/activityId'
+    post:
+      tags: [file]
+      summary: 上传封面
+      description: PNG、JPEG、GIF 或 WEBP，最大 5MB。不增加活动 version。
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 返回活动详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ActivityDetail'
+    get:
+      tags: [file]
+      summary: 管理端读取封面
+      responses:
+        '200':
+          description: 图片字节
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+  /public/activities/{id}/cover:
+    parameters:
+      - $ref: '#/components/parameters/activityId'
+    get:
+      tags: [file]
+      summary: 公开读取封面
+      security: []
+      description: 仅已发布且未删除的活动。
+      responses:
+        '200':
+          description: 图片字节
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+  /admin/activities/{id}/attachments:
+    parameters:
+      - $ref: '#/components/parameters/activityId'
+    post:
+      tags: [file]
+      summary: 上传附件
+      description: PDF、DOCX 或 PPTX，最大 20MB。不增加活动 version。
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 附件摘要
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Attachment'
+  /admin/attachments/{id}/download:
+    parameters:
+      - $ref: '#/components/parameters/attachmentId'
+    get:
+      tags: [file]
+      summary: 管理端下载附件
+      responses:
+        '200':
+          description: 文件字节
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /public/attachments/{id}/download:
+    parameters:
+      - $ref: '#/components/parameters/attachmentId'
+    get:
+      tags: [file]
+      summary: 公开下载附件
+      security: []
+      description: 仅所属活动已发布且未删除。
+      responses:
+        '200':
+          description: 文件字节
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /admin/attachments/{id}:
+    parameters:
+      - $ref: '#/components/parameters/attachmentId'
+    delete:
+      tags: [file]
+      summary: 删除附件
+      responses:
+        '200':
+          description: data 为 null
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+  /admin/activities/{id}/checkin-sessions:
+    parameters:
+      - $ref: '#/components/parameters/activityId'
+    post:
+      tags: [checkin]
+      summary: 开启签到
+      description: 关闭该活动上一个启用中的会话，并提升其 token 版本。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckinOpen'
+      responses:
+        '200':
+          description: 新会话
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CheckinSession'
+  /admin/checkin-sessions/{id}/close:
+    parameters:
+      - $ref: '#/components/parameters/sessionId'
+    post:
+      tags: [checkin]
+      summary: 关闭签到
+      responses:
+        '200':
+          description: 关闭后的会话
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CheckinSession'
+  /admin/activities/{id}/checkin-summary:
+    parameters:
+      - $ref: '#/components/parameters/activityId'
+    get:
+      tags: [checkin]
+      summary: 签到汇总
+      responses:
+        '200':
+          description: 不含姓名和手机号
+          headers:
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CheckinSummary'
+  /admin/checkin-sessions/{id}/challenge:
+    parameters:
+      - $ref: '#/components/parameters/sessionId'
+    get:
+      tags: [checkin]
+      summary: 签发动态签到码
+      description: 同一 30 秒窗口内多次请求得到相同令牌。公开接口不提供此能力。
+      responses:
+        '200':
+          description: HMAC-SHA256 令牌
+          headers:
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CheckinChallenge'
+  /public/checkin-context:
+    post:
+      tags: [checkin]
+      summary: 手机签到页上下文
+      security: []
+      description: 动态模式必须携带当前令牌。本接口不签发新令牌。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckinContextRequest'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CheckinContext'
+  /public/checkins:
+    post:
+      tags: [checkin]
+      summary: 提交签到
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckinSubmit'
+      responses:
+        '200':
+          description: 首次签到 alreadyCheckedIn 为 false；重复签到为 true，不新增记录
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CheckinResult'
+        '400':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+  parameters:
+    activityId:
+      in: path
+      name: id
+      required: true
+      schema: { type: string }
+    attachmentId:
+      in: path
+      name: id
+      required: true
+      schema: { type: string }
+    sessionId:
+      in: path
+      name: id
+      required: true
+      schema: { type: string }
+    keyword:
+      in: query
+      name: keyword
+      schema: { type: string }
+    typeId:
+      in: query
+      name: typeId
+      schema: { type: string }
+    status:
+      in: query
+      name: status
+      schema:
+        type: string
+        enum: [DRAFT, REGISTERING, CLOSED, ENDED]
+    page:
+      in: query
+      name: page
+      schema: { type: integer, minimum: 1, default: 1 }
+    pageSize:
+      in: query
+      name: pageSize
+      schema: { type: integer, minimum: 1, maximum: 100 }
+  responses:
+    Error:
+      description: 业务错误。HTTP 状态与 code 对应，正文仍是统一信封。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Envelope'
+  schemas:
+    Envelope:
+      type: object
+      required: [code, message, requestId]
+      properties:
+        code: { type: string, example: OK }
+        message: { type: string }
+        data: {}
+        requestId: { type: string }
+    CsrfToken:
+      type: object
+      required: [token, headerName]
+      properties:
+        token: { type: string }
+        headerName: { type: string, example: X-CSRF-TOKEN }
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+    AdminUser:
+      type: object
+      required: [id, username, displayName]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+    LoginResult:
+      type: object
+      required: [user, sessionExpiresAt]
+      properties:
+        user:
+          $ref: '#/components/schemas/AdminUser'
+        sessionExpiresAt: { type: string, format: date-time }
+    DictionaryItem:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    DictionaryList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DictionaryItem'
+    ActivityWrite:
+      type: object
+      required: [name, typeId, description, location, startAt, endAt, registrationDeadline, capacity]
+      properties:
+        name: { type: string }
+        typeId: { type: string }
+        description: { type: string }
+        location: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        registrationDeadline: { type: string, format: date-time }
+        capacity: { type: integer, minimum: 1 }
+        liveUrl: { type: string, nullable: true }
+        version: { type: integer, description: 更新时必填 }
+    ActivitySummary:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        typeId: { type: string }
+        typeName: { type: string }
+        location: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        registrationDeadline: { type: string, format: date-time }
+        capacity: { type: integer }
+        registeredCount: { type: integer }
+        publicationState: { type: string, enum: [DRAFT, PUBLISHED] }
+        publishedAt: { type: string, format: date-time, nullable: true }
+        displayStatus: { type: string, enum: [DRAFT, REGISTERING, CLOSED, ENDED] }
+        canRegister: { type: boolean }
+        unavailableReason:
+          type: string
+          nullable: true
+          description: 例如 CAPACITY_FULL。名额已满时 displayStatus 仍可为 REGISTERING。
+        version: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time, nullable: true }
+    ActivityPage:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivitySummary'
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer, format: int64 }
+    Attachment:
+      type: object
+      properties:
+        id: { type: string }
+        originalName: { type: string }
+        contentType: { type: string }
+        sizeBytes: { type: integer, format: int64 }
+        createdAt: { type: string, format: date-time }
+    ActivityDetail:
+      allOf:
+        - $ref: '#/components/schemas/ActivitySummary'
+        - type: object
+          properties:
+            description: { type: string }
+            liveUrl: { type: string, nullable: true }
+            coverUrl: { type: string, nullable: true }
+            attachments:
+              type: array
+              items:
+                $ref: '#/components/schemas/Attachment'
+            shareUrl: { type: string, nullable: true }
+            registrationUrl: { type: string, nullable: true }
+    PublishResult:
+      type: object
+      properties:
+        activityId: { type: string }
+        shareUrl: { type: string }
+        registrationUrl: { type: string }
+        validFrom: { type: string, format: date-time }
+        validUntil: { type: string, format: date-time }
+    PublicActivity:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        typeName: { type: string }
+        description: { type: string }
+        location: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        registrationDeadline: { type: string, format: date-time }
+        capacity: { type: integer }
+        registeredCount: { type: integer }
+        displayStatus: { type: string, enum: [REGISTERING, CLOSED, ENDED] }
+        canRegister: { type: boolean }
+        unavailableReason: { type: string, nullable: true }
+        liveUrl: { type: string, nullable: true }
+        coverUrl: { type: string, nullable: true }
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+        publishedAt: { type: string, format: date-time, nullable: true }
+    RegistrationCreate:
+      type: object
+      required: [name, phone, collegeId]
+      properties:
+        name: { type: string }
+        phone: { type: string, description: 中国大陆 11 位手机号 }
+        collegeId: { type: string }
+    RegistrationResult:
+      type: object
+      properties:
+        registrationId: { type: string }
+        registeredAt: { type: string, format: date-time }
+        activityName: { type: string }
+        startAt: { type: string, format: date-time }
+        location: { type: string }
+    RegistrationSummary:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        phone: { type: string }
+        collegeId: { type: string }
+        collegeName: { type: string }
+        registeredAt: { type: string, format: date-time }
+        checkedIn: { type: boolean }
+        checkedInAt: { type: string, format: date-time, nullable: true }
+    RegistrationPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RegistrationSummary'
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer, format: int64 }
+    Dashboard:
+      type: object
+      properties:
+        activityCounts:
+          type: object
+          properties:
+            total: { type: integer, format: int64 }
+            draft: { type: integer, format: int64 }
+            registering: { type: integer, format: int64 }
+            closed: { type: integer, format: int64 }
+            ended: { type: integer, format: int64 }
+        registrationCount: { type: integer, format: int64 }
+        checkinCount: { type: integer, format: int64 }
+        recentActivities:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivitySummary'
+    CheckinOpen:
+      type: object
+      required: [mode, windowStart, windowEnd]
+      properties:
+        mode: { type: string, enum: [BASIC, DYNAMIC] }
+        windowStart: { type: string, format: date-time }
+        windowEnd: { type: string, format: date-time }
+    CheckinSession:
+      type: object
+      properties:
+        id: { type: string }
+        activityId: { type: string }
+        mode: { type: string, enum: [BASIC, DYNAMIC] }
+        windowStart: { type: string, format: date-time }
+        windowEnd: { type: string, format: date-time }
+        enabled: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    CheckinSummary:
+      type: object
+      properties:
+        activityId: { type: string }
+        registeredCount: { type: integer }
+        checkedInCount: { type: integer }
+        sessionId: { type: string, nullable: true }
+        sessionMode: { type: string, nullable: true, enum: [BASIC, DYNAMIC] }
+        sessionEnabled: { type: boolean }
+        windowStart: { type: string, format: date-time, nullable: true }
+        windowEnd: { type: string, format: date-time, nullable: true }
+    CheckinChallenge:
+      type: object
+      properties:
+        token: { type: string }
+        serverTime: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        refreshAfterSeconds: { type: integer, format: int64 }
+    CheckinContextRequest:
+      type: object
+      required: [sessionId]
+      properties:
+        sessionId: { type: string }
+        token: { type: string, description: 动态模式必填 }
+    CheckinContext:
+      type: object
+      properties:
+        sessionId: { type: string }
+        activityId: { type: string }
+        activityName: { type: string }
+        mode: { type: string, enum: [BASIC, DYNAMIC] }
+        expiresInSeconds: { type: integer, format: int64 }
+        validUntil: { type: string, format: date-time }
+    CheckinSubmit:
+      type: object
+      required: [sessionId, phone]
+      properties:
+        sessionId: { type: string }
+        phone: { type: string }
+        token: { type: string }
+    CheckinResult:
+      type: object
+      properties:
+        checkinId: { type: string }
+        checkedAt: { type: string, format: date-time }
+        activityName: { type: string }
+        alreadyCheckedIn: { type: boolean }
+security:
+  - sessionCookie: []

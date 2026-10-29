@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElButton } from 'element-plus'
 
@@ -13,6 +13,8 @@ import { useAsyncData } from '@/composables/useAsyncData'
 import { UNAVAILABLE_REASON_TEXT } from '@/types/activity'
 import { formatActivityTime, formatDateTime, remainingSeats } from '@/utils/datetime'
 import { formatFileSize, progressPercent } from '@/utils/format'
+import { publicAttachmentUrl } from '@/api/admin/files'
+import { toQrDataUrl } from '@/utils/qr'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,6 +40,25 @@ const reasonText = computed(() =>
 )
 const notFound = computed(
   () => error.value?.code === 'ACTIVITY_UNAVAILABLE' || error.value?.status === 404,
+)
+
+const registrationLink = computed(() =>
+  activity.value ? `${window.location.origin}/events/${activity.value.id}/register` : '',
+)
+const qrUrl = ref('')
+
+watch(
+  registrationLink,
+  (link) => {
+    if (!link) {
+      qrUrl.value = ''
+      return
+    }
+    void toQrDataUrl(link, 180).then((url) => {
+      qrUrl.value = url
+    })
+  },
+  { immediate: true },
 )
 
 function goRegister(): void {
@@ -140,9 +161,9 @@ function goRegister(): void {
               <AppIcon name="inbox" :size="16" />
               <span class="promo__attachment-name">{{ item.originalName }}</span>
               <span class="promo__attachment-size mono">{{ formatFileSize(item.sizeBytes) }}</span>
+              <a class="promo__attachment-link" :href="publicAttachmentUrl(item.id)">下载</a>
             </li>
           </ul>
-          <p class="promo__attachment-note">公开下载在批次4接入，当前只展示材料清单。</p>
         </section>
       </article>
 
@@ -183,11 +204,12 @@ function goRegister(): void {
 
           <div class="promo__qr">
             <span class="promo__qr-box">
-              <AppIcon name="qr" :size="34" />
+              <img v-if="qrUrl" :src="qrUrl" alt="报名二维码" />
+              <AppIcon v-else name="qr" :size="34" />
             </span>
             <span class="promo__qr-text">
               <strong>手机扫码报名</strong>
-              <small>二维码接入后可直接扫码进入报名页</small>
+              <small>扫码进入本活动的报名页</small>
             </span>
           </div>
 
@@ -503,11 +525,23 @@ function goRegister(): void {
   background: var(--bg-subtle);
 }
 
+.promo__qr-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.promo__attachment-link {
+  color: var(--brand);
+  font-size: var(--font-size-xs);
+}
+
 .promo__qr-box {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
+  width: 168px;
+  height: 168px;
+  overflow: hidden;
   border-radius: 10px;
   background: var(--bg-surface);
   color: var(--text-muted);

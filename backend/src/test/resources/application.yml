@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:campus;MODE=REGULAR;DB_CLOSE_DELAY=-1
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      schema-locations: classpath:db/schema.sql
+
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-handlers-package: com.campus.events.common.mybatis
+  configuration:
+    map-underscore-to-camel-case: true
+    jdbc-type-for-null: NULL
+    default-statement-timeout: 20
+
+app:
+  storage-root: ${java.io.tmpdir}/campus-events-test
+  public-base-url: http://localhost:5173
+  checkin-secret: campus-events-test-checkin-secret
+  admin-username: admin
+  admin-password: admin123
+  admin-display-name: 活动管理员
+  seed-demo: true
