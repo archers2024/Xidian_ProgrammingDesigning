@@ -25,13 +25,12 @@ function Invoke-ProjectGit {
     return $result
 }
 
-$top = (Invoke-ProjectGit -GitArgs @('rev-parse', '--show-toplevel')).Text.Trim()
-if (-not [string]::Equals(
-    [IO.Path]::GetFullPath($top), [IO.Path]::GetFullPath($repoRoot),
-    [StringComparison]::OrdinalIgnoreCase)) {
+# Git 在中文路径下可能按系统代码页输出目录，和 PowerShell 的路径字符串对不上。
+# 仓库根目录直接用脚本位置，并用 .git/HEAD 确认，避免误读路径后写到别处。
+$gitDir = Join-Path $repoRoot '.git'
+if (-not (Test-Path -LiteralPath (Join-Path $gitDir 'HEAD'))) {
     throw 'Repository must be the Git project root.'
 }
-$gitDir = (Invoke-ProjectGit -GitArgs @('rev-parse', '--absolute-git-dir')).Text.Trim()
 $indexPath = Join-Path $gitDir ('ai-backup-index-' + [guid]::NewGuid().ToString('N'))
 $lockStream = $null
 $previousIndex = $env:GIT_INDEX_FILE
