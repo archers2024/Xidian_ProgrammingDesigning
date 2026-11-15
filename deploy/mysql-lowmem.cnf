@@ -1,0 +1,13 @@
+# MySQL 8 低内存配置（2G 内存机器）
+# 目标位置: /etc/mysql/conf.d/99-activity-lowmem.cnf
+# 默认 MySQL 8 在 2G 机器上容易 OOM，关掉 performance_schema 能省约 200-400MB。
+
+[mysqld]
+innodb_buffer_pool_size = 128M
+innodb_log_buffer_size = 8M
+max_connections = 60
+performance_schema = OFF
+table_open_cache = 200
+tmp_table_size = 16M
+max_heap_table_size = 16M
+skip-name-resolve

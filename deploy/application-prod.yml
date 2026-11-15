@@ -1,0 +1,60 @@
+# 生产外置配置模板。setup.sh 会把 __PUBLIC_IP__ / __DB_PASSWORD__ / __JWT_SECRET__
+# 替换为实际值后放到 /opt/activity-system/config/application-prod.yml。
+# Spring Boot 通过 --spring.config.additional-location 加载，覆盖 jar 内的 application.yml。
+
+server:
+  port: 8080
+  servlet:
+    # 与 jar 内 application.yml 保持一致：后端根路径，Nginx 负责剥离 /api/v1。
+    context-path: /
+    encoding:
+      charset: UTF-8
+      force: true
+  # 反代后 request.getRemoteAddr() 默认是 127.0.0.1，会让报名限流全校共用一个计数。
+  # RemoteIpValve 让 Tomcat 依据 X-Forwarded-For 还原真实客户端 IP。
+  tomcat:
+    remoteip:
+      remote-ip-header: X-Forwarded-For
+      protocol-header: X-Forwarded-Proto
+      internal-proxies: '127\.0\.0\.1|0:0:0:0:0:0:0:1'
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/campus_activity?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: campus
+    password: '__DB_PASSWORD__'
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+campus:
+  jwt:
+    secret: '__JWT_SECRET__'
+    expire-hours: 8
+  file:
+    upload-dir: /opt/activity-system/uploads
+    url-prefix: /api/v1/files/
+  # 宣传页的报名二维码由后端拼接: base-url + /signup/{guid}
+  # 必须是公网可达地址，不能留 localhost。
+  mobile:
+    base-url: http://__PUBLIC_IP__/m
+  checkin:
+    time-step: 30
+    default-radius: 500
+    device-interval-seconds: 300
+  # 兜底: 万一 RemoteIpValve 未生效，仍避免演示时多人报名被误拦。
+  # 默认值 10 是给单机直连用的；这里按真实 IP 限流，100 次/分钟足够答辩。
+  signup:
+    ip-limit-per-minute: 100

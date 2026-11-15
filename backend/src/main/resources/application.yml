@@ -1,0 +1,52 @@
+server:
+  port: 8080
+  servlet:
+    # 后端以根路径部署；/api/v1 由 Vite 代理或 Nginx 统一剥离后再转发。
+    context-path: /
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/campus_activity?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: root
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 自定义配置
+campus:
+  # A岗：JWT 秘钥与有效期（小时）
+  jwt:
+    secret: campus-activity-system-training-2026-secret-key
+    expire-hours: 8
+  # A岗：上传根目录与外网访问前缀
+  file:
+    upload-dir: ./uploads
+    url-prefix: /api/v1/files/
+  # C岗：移动端页面基础地址，用于拼二维码内容
+  mobile:
+    base-url: http://localhost:5173/m
+  # D岗：签到动态码时间片（秒）与地理围栏半径（米）
+  checkin:
+    time-step: 30
+    default-radius: 500
+    device-interval-seconds: 300
+  # C岗：报名接口防刷，同 IP 每分钟上限
+  signup:
+    ip-limit-per-minute: 10

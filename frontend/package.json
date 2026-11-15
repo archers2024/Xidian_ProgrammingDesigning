@@ -1,0 +1,24 @@
+{
+  "name": "activity-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "高校学生活动全流程管理系统 - 前端（PC 后台 + 移动端 H5 同工程）",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "echarts": "^5.5.0",
+    "element-plus": "^2.7.5",
+    "pinia": "^2.1.7",
+    "qrcode": "^1.5.3",
+    "vue": "^3.4.29",
+    "vue-router": "^4.3.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.5",
+    "vite": "^5.3.1"
+  }
+}

@@ -1,32 +1,24 @@
-# Backend build output
+# 忽略规则
+
+## 构建产物与依赖
 backend/target/
-
-# Frontend dependencies and generated output
-frontend/node_modules/
 frontend/dist/
-frontend/coverage/
+frontend/node_modules/
 frontend/.vite/
-frontend/test-results/
-frontend/playwright-report/
-*.tsbuildinfo
 
-# Local environment files; committed examples contain placeholders only
+## 运行时产生的数据
+uploads/
+*.log
+run-logs/
+*.bak
+*.tmp
+
+## 本地配置与系统文件
 .env
 .env.*
 !.env.example
-!.env.development
-!.env.production
-!.env.test
-
-# Runtime data, temporary work, verification output and submission bundles
-/runtime/
-/artifacts/
-/releases/
-/.tmp/
-*.log
-
-# Local editor and OS files
-.idea/
-*.iml
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
+*.iml
