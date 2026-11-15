@@ -16,7 +16,13 @@
 ```
 .
 ├── README.md                    本文件
-├── db/init.sql                  建库 + 8 张表 + 字典数据
+├── db/                          数据库交付物
+│   ├── init.sql                 建库 + 8 张表 + 字典数据
+│   ├── campus_activity_dump.sql 真实 mysqldump 导出的完整库
+│   ├── campus_activity_snapshot.sql  等价快照（中文注释版）
+│   ├── demo-data.sql            演示数据（活动/报名/签到）
+│   ├── export-dump.cmd          重新导出运行库的脚本
+│   └── README.md                数据库文件说明
 ├── backend/                     Spring Boot 工程
 │   ├── pom.xml
 │   ├── src/main/java/com/campus/activity/
@@ -45,6 +51,7 @@
 ```bash
 # 1. 建库建表与字典数据（必须指定 utf8mb4，否则中文数据报 ERROR 1366）
 mysql --default-character-set=utf8mb4 -uroot -p < db/init.sql
+# 可选：导入 db/demo-data.sql 立刻看到 1 个活动、2 条报名、1 条签到
 
 # 2. 后端，修改 application.yml 中的数据库账号密码后执行
 cd backend
@@ -87,6 +94,7 @@ npm run dev -- --host 0.0.0.0 --port 5173
 | `docs/03-服务器部署.md` | 阿里云/学生机部署流程与配置说明 |
 | `docs/04-接口清单.md` | 27 个 REST 接口与前端调用位置 |
 | `docs/05-数据库设计.md` | 8 张表、字段、索引与约束 |
+| `db/README.md` | 数据库文件清单、导入方式、真实 dump 导出方法 |
 | `docs/需求规格说明书.docx` | 原始需求 |
 | `docs/软件设计报告.docx` | 依据源码反推的软件设计报告 |
 | `docs/设计思路报告.docx` | 未依赖源码、从需求推演的设计思路报告 |
