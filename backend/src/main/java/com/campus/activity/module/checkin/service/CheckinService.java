@@ -117,28 +117,35 @@ public class CheckinService {
         }
 
         String method = "BASIC";
-        // 准确签到：动态码 + 地理围栏 + 设备指纹（FR-09，加分项）
+        // 准确签到：动态码 + 会场坐标 + 用户坐标 + 设备标识，四项缺一不可（FR-09）
         if (code != null && !code.isBlank()) {
             if (!verifyCode(a, code)) {
                 throw new BusinessException("二维码已失效，请重新扫码");
             }
             method = "ACCURATE";
-            if (a.getLngLat() != null && !a.getLngLat().isBlank() && lngLat != null && !lngLat.isBlank()) {
-                int radius = a.getCheckinRadius() == null ? 500 : a.getCheckinRadius();
-                double distance = GeoUtil.distance(a.getLngLat(), lngLat);
-                if (distance > radius) {
-                    throw new BusinessException("超出签到范围（当前距离约 " + (long) distance + " 米），请到会场签到");
-                }
+            double[] center = GeoUtil.parse(a.getLngLat());
+            if (center == null) {
+                throw new BusinessException("活动未配置有效的会场坐标，暂时无法完成准确签到");
             }
-            if (deviceFingerprint != null && !deviceFingerprint.isBlank()) {
-                LocalDateTime since = LocalDateTime.now().minusSeconds(deviceIntervalSeconds);
-                Long recent = checkinMapper.selectCount(new LambdaQueryWrapper<CheckIn>()
-                        .eq(CheckIn::getActivityId, activityId)
-                        .eq(CheckIn::getDeviceFingerprint, deviceFingerprint)
-                        .ge(CheckIn::getCheckinTime, since));
-                if (recent != null && recent > 0) {
-                    throw new BusinessException("该设备刚刚已完成签到，请稍后再试");
-                }
+            double[] userPoint = GeoUtil.parse(lngLat);
+            if (userPoint == null) {
+                throw new BusinessException("准确签到需要获取定位，请允许定位权限后重试");
+            }
+            if (deviceFingerprint == null || deviceFingerprint.isBlank()) {
+                throw new BusinessException("准确签到需要设备标识，请使用手机浏览器打开");
+            }
+            int radius = a.getCheckinRadius() == null ? 500 : a.getCheckinRadius();
+            double distance = GeoUtil.distance(a.getLngLat(), lngLat);
+            if (!Double.isFinite(distance) || distance > radius) {
+                throw new BusinessException("超出签到范围（当前距离约 " + (long) distance + " 米），请到会场签到");
+            }
+            LocalDateTime since = LocalDateTime.now().minusSeconds(deviceIntervalSeconds);
+            Long recent = checkinMapper.selectCount(new LambdaQueryWrapper<CheckIn>()
+                    .eq(CheckIn::getActivityId, activityId)
+                    .eq(CheckIn::getDeviceFingerprint, deviceFingerprint)
+                    .ge(CheckIn::getCheckinTime, since));
+            if (recent != null && recent > 0) {
+                throw new BusinessException("该设备刚刚已完成签到，请稍后再试");
             }
         }
 
@@ -167,7 +174,8 @@ public class CheckinService {
             Map<String, Object> m = new HashMap<>();
             m.put("checkinId", v.getCheckinId());
             m.put("name", v.getName());
-            m.put("phone", v.getPhone());
+            // 签到记录与导出统一脱敏，避免绕开报名名单的隐私口径
+            m.put("phone", SignupService.mask(v.getPhone()));
             m.put("collegeCode", v.getCollegeCode());
             m.put("checkinTime", v.getCheckinTime());
             m.put("method", v.getMethod());

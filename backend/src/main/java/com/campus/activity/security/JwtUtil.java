@@ -28,11 +28,13 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String createToken(Long adminId, String username, String roleCode) {
+    public String createToken(Long adminId, String username, String roleCode, Integer tokenVersion) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("adminId", adminId);
         claims.put("username", username);
         claims.put("roleCode", roleCode);
+        // 令牌版本：停用 / 重置密码 / 角色变更时自增，旧令牌随即失效
+        claims.put("tv", tokenVersion == null ? 0 : tokenVersion);
         Date now = new Date();
         return Jwts.builder()
                 .claims(claims)

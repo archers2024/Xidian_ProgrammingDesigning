@@ -39,6 +39,7 @@ public class ActivityService {
         activity.setSignupGuid(UUID.randomUUID().toString().replace("-", "").substring(0, 24));
         activity.setStatus("DRAFT");
         activity.setSignedCount(0);
+        // 新建活动一律从未开启签到起步，开启走受鉴权的开关接口或编辑请求
         activity.setCheckinEnabled(0);
         if (activity.getCheckinRadius() == null) {
             activity.setCheckinRadius(500);
@@ -69,12 +70,31 @@ public class ActivityService {
             // 保留已有报名，但停止新报名（名额判定以 signed_count >= quota 为准）
             activity.setQuota(old.getSignedCount());
         }
+        // 签到开关：请求未携带时沿用库中原值，携带时按显式值更新
+        if (activity.getCheckinEnabled() == null) {
+            activity.setCheckinEnabled(old.getCheckinEnabled());
+        }
         activityMapper.updateById(activity);
-        if (attachments != null && !attachments.isEmpty()) {
-            saveAttachments(activity.getActivityId(), attachments);
+        // 附件语义：null = 不修改；[] = 清空；非空 = 整体替换（不再累加）
+        if (attachments != null) {
+            replaceAttachments(activity.getActivityId(), attachments);
         }
         adminService.writeLog(AdminContext.adminId(), "ACTIVITY_UPDATE",
                 String.valueOf(activity.getActivityId()), "编辑活动：" + activity.getTitle(), null);
+    }
+
+    /** 签到开关（FR-08）：独立接口，受 /admin/** 鉴权保护，并记录操作日志。 */
+    @Transactional
+    public void toggleCheckin(Long activityId, boolean enabled) {
+        Activity a = require(activityId);
+        if ("DRAFT".equals(a.getStatus()) || "CANCELED".equals(a.getStatus())) {
+            throw new BusinessException("草稿或已取消的活动不能开启签到");
+        }
+        a.setCheckinEnabled(enabled ? 1 : 0);
+        a.setUpdateTime(LocalDateTime.now());
+        activityMapper.updateById(a);
+        adminService.writeLog(AdminContext.adminId(), "ACTIVITY_CHECKIN_SWITCH",
+                String.valueOf(activityId), (enabled ? "开启" : "关闭") + "签到：" + a.getTitle(), null);
     }
 
     @Transactional
@@ -233,6 +253,13 @@ public class ActivityService {
             att.setUploadTime(LocalDateTime.now());
             attachmentMapper.insert(att);
         }
+    }
+
+    /** 整体替换附件元数据；先删旧记录再插入，保证重复保存不会累加。 */
+    private void replaceAttachments(Long activityId, List<Attachment> attachments) {
+        attachmentMapper.delete(new LambdaQueryWrapper<Attachment>()
+                .eq(Attachment::getActivityId, activityId));
+        saveAttachments(activityId, attachments);
     }
 
     public ActivityService(ActivityMapper activityMapper, AttachmentMapper attachmentMapper, AdminService adminService) {

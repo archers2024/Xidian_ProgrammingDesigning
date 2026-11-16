@@ -92,7 +92,7 @@ npm run dev -- --host 0.0.0.0 --port 5173
 | `docs/01-实现步骤.md` | 从需求拆解到验收的完整实现过程、关键算法、踩坑记录 |
 | `docs/02-运行步骤.md` | 本机运行与演示的超详细步骤、排错表 |
 | `docs/03-服务器部署.md` | 阿里云/学生机部署流程与配置说明 |
-| `docs/04-接口清单.md` | 27 个 REST 接口与前端调用位置 |
+| `docs/04-接口清单.md` | 28 个 REST 接口与前端调用位置 |
 | `docs/05-数据库设计.md` | 8 张表、字段、索引与约束 |
 | `db/README.md` | 数据库文件清单、导入方式、真实 dump 导出方法 |
 | `docs/需求规格说明书.docx` | 原始需求 |
@@ -101,7 +101,7 @@ npm run dev -- --host 0.0.0.0 --port 5173
 
 ## 已知限制
 
-- 未接入 Redis，登录态只靠 JWT，退出仅前端丢弃 token；设备限频与报名 IP 限流都在单机内存计数。
+- 未接入 Redis，登录态使用 JWT + `token_version`：停用账号、重置密码、调整角色会立即使旧令牌失效；退出仍只在前端丢弃 token。设备限频与报名 IP 限流都在单机内存计数。
 - 文件上传落本地磁盘，未接对象存储；`uploads/` 不入库。
 - 未做单元测试与自动化运行时联调，验收靠 `deploy/smoke-test.sh` 与手工主链路。
-- `start-backend.cmd` / `start-frontend.cmd` 含本机 MySQL 路径、本机密码和局域网 IP，换机器必须按 `docs/02-运行步骤.md` 修改。
+- `start-backend.cmd` / `start-frontend.cmd` 从环境变量读取数据库连接与移动端地址，脚本内不含口令和绝对路径，换机器按 `docs/02-运行步骤.md` 设置变量即可。

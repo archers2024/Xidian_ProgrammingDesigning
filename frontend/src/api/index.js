@@ -28,6 +28,7 @@ export const activityApi = {
   update: (id, data) => request.put(`/admin/activity/${id}`, data),
   remove: (id) => request.delete(`/admin/activity/${id}`),
   publish: (id) => request.post(`/admin/activity/${id}/publish`),
+  toggleCheckin: (id, enabled) => request.put(`/admin/activity/${id}/checkin`, { enabled }),
   qrcode: (id) => request.get(`/admin/activity/${id}/qrcode`)
 }
 

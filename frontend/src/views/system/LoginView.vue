@@ -36,6 +36,7 @@ const submit = async () => {
   try {
     const data = await authApi.login(form)
     localStorage.setItem('token', data.token)
+    localStorage.setItem('profile', JSON.stringify(data.profile || {}))
     router.push('/activity')
   } finally {
     loading.value = false

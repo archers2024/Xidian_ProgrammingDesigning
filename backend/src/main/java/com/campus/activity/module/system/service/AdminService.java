@@ -2,10 +2,12 @@ package com.campus.activity.module.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.campus.activity.common.BusinessException;
+import com.campus.activity.module.system.dto.AdminCreateRequest;
 import com.campus.activity.module.system.entity.Admin;
 import com.campus.activity.module.system.entity.OperationLog;
 import com.campus.activity.module.system.mapper.AdminMapper;
 import com.campus.activity.module.system.mapper.OperationLogMapper;
+import com.campus.activity.module.system.vo.AdminSummary;
 import com.campus.activity.security.AdminContext;
 import com.campus.activity.security.JwtUtil;
 
@@ -17,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * A岗：认证与账号管理（FR-01、FR-12）。
@@ -58,7 +61,8 @@ public class AdminService {
         adminMapper.updateById(admin);
         writeLog(admin.getAdminId(), "LOGIN", String.valueOf(admin.getAdminId()), "登录成功", ip);
 
-        String token = jwtUtil.createToken(admin.getAdminId(), admin.getUsername(), admin.getRoleCode());
+        String token = jwtUtil.createToken(admin.getAdminId(), admin.getUsername(), admin.getRoleCode(),
+                admin.getTokenVersion() == null ? 0 : admin.getTokenVersion());
         Map<String, Object> data = new HashMap<>();
         data.put("token", token);
         Map<String, Object> profile = new HashMap<>();
@@ -70,53 +74,102 @@ public class AdminService {
         return data;
     }
 
-    /** FR-12：新增管理员，默认密码 12345678，强制首次修改 */
-    public void createAdmin(Admin admin) {
+    /**
+     * FR-12：新增管理员。
+     * 密码必须由操作者显式填写并满足策略；原先「留空填 12345678 再被策略拒绝」的自相矛盾逻辑已移除。
+     */
+    public void createAdmin(AdminCreateRequest req) {
+        String username = req.getUsername() == null ? "" : req.getUsername().trim();
         if (adminMapper.selectCount(new LambdaQueryWrapper<Admin>()
-                .eq(Admin::getUsername, admin.getUsername())) > 0) {
+                .eq(Admin::getUsername, username)) > 0) {
             throw new BusinessException("账号已存在");
         }
-        if (admin.getPasswordHash() == null || admin.getPasswordHash().isBlank()) {
-            admin.setPasswordHash("12345678");
+        checkPassword(req.getPassword());
+        String role = req.getRoleCode();
+        if (role == null || role.isBlank()) {
+            role = "ADMIN";
         }
-        checkPassword(admin.getPasswordHash());
-        admin.setPasswordHash(encoder.encode(admin.getPasswordHash()));
+        if (!"ADMIN".equals(role) && !"SUPER".equals(role)) {
+            throw new BusinessException("角色只能是 ADMIN 或 SUPER");
+        }
+
+        Admin admin = new Admin();
+        admin.setUsername(username);
+        admin.setRealName(req.getRealName());
+        admin.setDept(req.getDept());
+        admin.setRoleCode(role);
+        admin.setPasswordHash(encoder.encode(req.getPassword()));
         admin.setStatus(1);
+        admin.setTokenVersion(0);
         admin.setCreateTime(LocalDateTime.now());
-        if (admin.getRoleCode() == null) {
-            admin.setRoleCode("ADMIN");
-        }
         adminMapper.insert(admin);
         writeLog(AdminContext.adminId(), "ADMIN_CREATE", String.valueOf(admin.getAdminId()), "新增管理员", null);
     }
 
+    /**
+     * 启用 / 停用账号。
+     * 每次切换都递增令牌版本，停用后该账号所有已签发令牌立即失效（启用也不会让旧令牌复活）。
+     */
     public void updateStatus(Long adminId, Integer status) {
         Admin admin = adminMapper.selectById(adminId);
         if (admin == null) {
             throw new BusinessException("账号不存在");
         }
+        if (status == null || (status != 0 && status != 1)) {
+            throw new BusinessException("状态值只能是 0 或 1");
+        }
+        if (status == 0 && isLastSuper(admin)) {
+            throw new BusinessException("系统至少保留一个启用的超级管理员");
+        }
         admin.setStatus(status);
+        admin.setTokenVersion((admin.getTokenVersion() == null ? 0 : admin.getTokenVersion()) + 1);
         adminMapper.updateById(admin);
         writeLog(AdminContext.adminId(), "ADMIN_STATUS", String.valueOf(adminId), "修改账号状态为 " + status, null);
     }
 
-    public void resetPassword(Long adminId) {
+    /**
+     * 重置密码：生成一次性强密码返回给操作者，同时递增令牌版本使旧会话失效。
+     * 不再使用固定密码 12345678。
+     */
+    public String resetPassword(Long adminId) {
         Admin admin = adminMapper.selectById(adminId);
         if (admin == null) {
             throw new BusinessException("账号不存在");
         }
-        admin.setPasswordHash(encoder.encode("12345678"));
+        String tempPassword = generateTempPassword();
+        admin.setPasswordHash(encoder.encode(tempPassword));
+        admin.setTokenVersion((admin.getTokenVersion() == null ? 0 : admin.getTokenVersion()) + 1);
         adminMapper.updateById(admin);
         writeLog(AdminContext.adminId(), "ADMIN_RESET_PWD", String.valueOf(adminId), "重置密码", null);
+        return tempPassword;
     }
 
-    public List<Admin> list() {
-        return adminMapper.selectList(new LambdaQueryWrapper<Admin>().orderByDesc(Admin::getAdminId));
+    /** 账号列表只返回管理字段，passwordHash / tokenVersion 不进入响应。 */
+    public List<AdminSummary> list() {
+        return adminMapper.selectList(new LambdaQueryWrapper<Admin>().orderByDesc(Admin::getAdminId))
+                .stream().map(AdminSummary::of).toList();
+    }
+
+    private boolean isLastSuper(Admin admin) {
+        if (!"SUPER".equals(admin.getRoleCode())) {
+            return false;
+        }
+        Long activeSupers = adminMapper.selectCount(new LambdaQueryWrapper<Admin>()
+                .eq(Admin::getRoleCode, "SUPER")
+                .eq(Admin::getStatus, 1)
+                .ne(Admin::getAdminId, admin.getAdminId()));
+        return activeSupers == null || activeSupers == 0;
+    }
+
+    private String generateTempPassword() {
+        int digits = ThreadLocalRandom.current().nextInt(100_000_000);
+        return "Ab" + String.format("%08d", digits);
     }
 
     private void checkPassword(String pwd) {
-        if (pwd == null || pwd.length() < 8 || !pwd.matches(".*[A-Za-z].*") || !pwd.matches(".*\\d.*")) {
-            throw new BusinessException("密码至少 8 位且包含字母和数字");
+        if (pwd == null || pwd.length() < 8 || pwd.length() > 64
+                || !pwd.matches(".*[A-Za-z].*") || !pwd.matches(".*\\d.*")) {
+            throw new BusinessException("密码需 8-64 位且同时包含字母和数字");
         }
     }
 

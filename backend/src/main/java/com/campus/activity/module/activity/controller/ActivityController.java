@@ -1,6 +1,7 @@
 package com.campus.activity.module.activity.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.campus.activity.common.BusinessException;
 import com.campus.activity.common.R;
 import com.campus.activity.module.activity.entity.Activity;
 import com.campus.activity.module.activity.entity.Attachment;
@@ -53,6 +54,19 @@ public class ActivityController {
         return R.ok();
     }
 
+    /** 签到开关（FR-08）。独立于编辑接口，便于前端单独切换并记录操作日志。 */
+    @PutMapping("/{id}/checkin")
+    public R<Void> toggleCheckin(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        Object v = body.get("enabled");
+        if (v == null) {
+            throw new BusinessException("缺少 enabled 参数");
+        }
+        String s = String.valueOf(v);
+        boolean enabled = "true".equalsIgnoreCase(s) || "1".equals(s);
+        activityService.toggleCheckin(id, enabled);
+        return R.ok();
+    }
+
     @GetMapping("/list")
     public R<IPage<Activity>> list(@RequestParam(defaultValue = "1") long current,
                                    @RequestParam(defaultValue = "10") long size,
@@ -91,11 +105,15 @@ public class ActivityController {
 
     @SuppressWarnings("unchecked")
     private List<Attachment> toAttachments(Map<String, Object> body) {
-        List<Map<String, Object>> list = (List<Map<String, Object>>) body.get("attachments");
-        if (list == null) {
+        // 语义区分：未携带 attachments → null（不修改）；携带空数组 → 空列表（清空）
+        if (!body.containsKey("attachments")) {
+            return null;
+        }
+        Object raw = body.get("attachments");
+        if (!(raw instanceof List<?> list) || list.isEmpty()) {
             return List.of();
         }
-        return list.stream().map(m -> {
+        return ((List<Map<String, Object>>) list).stream().map(m -> {
             Attachment att = new Attachment();
             att.setFileName((String) m.get("fileName"));
             att.setFileUrl((String) m.get("url"));
@@ -121,6 +139,8 @@ public class ActivityController {
         a.setQuota(quota == null ? null : Integer.valueOf(String.valueOf(quota)));
         Object radius = body.get("checkinRadius");
         a.setCheckinRadius(radius == null ? 500 : Integer.valueOf(String.valueOf(radius)));
+        Object checkinEnabled = body.get("checkinEnabled");
+        a.setCheckinEnabled(checkinEnabled == null ? null : Integer.valueOf(String.valueOf(checkinEnabled)));
         return a;
     }
 

@@ -2,7 +2,8 @@
   <!-- UI-05 报名名单页（C岗）：签到列只读引用 D 岗数据，导出默认脱敏 -->
   <div>
     <div class="toolbar">
-      <el-checkbox v-model="maskPhone" @change="load">手机号脱敏</el-checkbox>
+      <el-checkbox v-model="maskPhone" :disabled="!isSuper" @change="load">手机号脱敏</el-checkbox>
+      <span class="hint" v-if="isSuper && !maskPhone">完整号码仅超级管理员可见，本次查看会记录操作日志</span>
       <el-button type="primary" @click="exportExcel">导出 Excel</el-button>
       <el-button @click="$router.back()">返回</el-button>
     </div>
@@ -38,6 +39,11 @@ const route = useRoute()
 const list = ref([])
 const loading = ref(false)
 const maskPhone = ref(true)
+// 只有超级管理员能关闭脱敏；普通管理员开关置灰，避免误以为点了就能看原号
+const profile = (() => {
+  try { return JSON.parse(localStorage.getItem('profile') || '{}') } catch { return {} }
+})()
+const isSuper = profile.roleCode === 'SUPER'
 
 const load = async () => {
   loading.value = true
@@ -53,4 +59,5 @@ onMounted(load)
 
 <style scoped>
 .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.hint { color: #e6a23c; font-size: 12px; }
 </style>

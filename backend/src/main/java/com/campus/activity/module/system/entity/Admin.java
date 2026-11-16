@@ -32,6 +32,12 @@ public class Admin {
     /** 1 启用 / 0 停用 */
     private Integer status;
 
+    /**
+     * 令牌版本：每次停用、重置密码、调整角色时自增。
+     * JWT 中携带签发时的版本，拦截器比对不一致即视为已撤销，使旧令牌立即失效。
+     */
+    private Integer tokenVersion;
+
     private LocalDateTime lastLoginTime;
 
     private LocalDateTime createTime;
@@ -90,6 +96,14 @@ public class Admin {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Integer getTokenVersion() {
+        return tokenVersion;
+    }
+
+    public void setTokenVersion(Integer tokenVersion) {
+        this.tokenVersion = tokenVersion;
     }
 
     public LocalDateTime getLastLoginTime() {

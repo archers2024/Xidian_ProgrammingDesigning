@@ -26,6 +26,11 @@
         <el-input-number v-model="form.quota" :min="1" :max="5000" />
       </el-form-item>
       <el-form-item label="签到半径(米)"><el-input-number v-model="form.checkinRadius" :min="50" :max="5000" /></el-form-item>
+      <el-form-item label="开启签到">
+        <el-switch v-model="checkinEnabled" :disabled="!isEdit || !canToggleCheckin" @change="onToggleCheckin" />
+        <span class="hint" v-if="!isEdit">创建并发布后可开启签到</span>
+        <span class="hint" v-else-if="!canToggleCheckin">草稿或已取消的活动不能开启签到</span>
+      </el-form-item>
       <el-form-item label="直播链接"><el-input v-model="form.liveUrl" placeholder="选填" /></el-form-item>
       <el-form-item label="封面图">
         <el-upload :http-request="uploadCover" :show-file-list="false" accept="image/*">
@@ -34,7 +39,8 @@
         </el-upload>
       </el-form-item>
       <el-form-item label="活动附件">
-        <el-upload :http-request="uploadAttachment" :show-file-list="true" :file-list="attachments">
+        <el-upload :http-request="uploadAttachment" :show-file-list="true" :file-list="attachments"
+                   :on-remove="removeAttachment">
           <el-button>选择文件</el-button>
         </el-upload>
       </el-form-item>
@@ -47,7 +53,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { activityApi, dictApi, fileApi } from '../../api'
@@ -58,6 +64,10 @@ const isEdit = !!route.params.id
 const types = ref([])
 const timeRange = ref(null)
 const attachments = ref([])
+// 签到开关与活动状态：草稿 / 已取消不允许开启
+const checkinEnabled = ref(false)
+const status = ref('')
+const canToggleCheckin = computed(() => status.value !== 'DRAFT' && status.value !== 'CANCELED')
 const form = reactive({
   title: '', typeCode: '', introduction: '', location: '', lngLat: '',
   signupDeadline: '', quota: 100, checkinRadius: 500, liveUrl: '', coverUrl: ''
@@ -75,6 +85,20 @@ const uploadCover = async (options) => {
 const uploadAttachment = async (options) => {
   const data = await doUpload(options)
   attachments.value.push({ name: data.fileName, fileName: data.fileName, url: data.url, fileSize: data.fileSize })
+}
+const removeAttachment = (file) => {
+  attachments.value = attachments.value.filter(a => a.url !== file.url)
+}
+
+// 签到开关走独立接口，保存后立即生效并记录操作日志
+const onToggleCheckin = async (val) => {
+  try {
+    await activityApi.toggleCheckin(route.params.id, val)
+    ElMessage.success(val ? '已开启签到' : '已关闭签到')
+  } catch (e) {
+    checkinEnabled.value = !val
+    ElMessage.error(e.message || '操作失败')
+  }
 }
 
 const submit = async () => {
@@ -113,6 +137,8 @@ onMounted(async () => {
       checkinRadius: a.checkinRadius, liveUrl: a.liveUrl, coverUrl: a.coverUrl
     })
     timeRange.value = [a.startTime, a.endTime]
+    status.value = a.status
+    checkinEnabled.value = a.checkinEnabled === 1
     attachments.value = (data.attachments || []).map(x => ({ name: x.fileName, fileName: x.fileName, url: x.fileUrl, fileSize: x.fileSize }))
   }
 })
@@ -122,4 +148,5 @@ onMounted(async () => {
 h3 { margin-bottom: 16px; }
 .form { max-width: 720px; }
 .cover { width: 160px; height: 100px; object-fit: cover; border-radius: 4px; }
+.hint { margin-left: 10px; color: #909399; font-size: 12px; }
 </style>

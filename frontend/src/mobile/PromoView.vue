@@ -3,6 +3,8 @@
   <div class="promo">
     <img v-if="activity.coverUrl" :src="activity.coverUrl" class="cover" />
     <div class="body">
+      <div v-if="loadError" class="closed">{{ loadError }}</div>
+      <template v-else>
       <h1>{{ activity.title }}</h1>
       <div class="meta">
         <span class="tag">{{ typeName }}</span>
@@ -30,6 +32,7 @@
       <button class="btn" :disabled="!signupOpen" @click="goSignup">
         {{ signupOpen ? '立即报名' : '当前不可报名' }}
       </button>
+      </template>
     </div>
   </div>
 </template>
@@ -47,6 +50,7 @@ const attachments = ref([])
 const signupOpen = ref(false)
 const signupTip = ref('')
 const qrUrl = ref('')
+const loadError = ref('')
 
 const types = ref([])
 const statusMap = { DRAFT: '未发布', OPEN: '报名中', CLOSED: '已截止', ONGOING: '进行中', FINISHED: '已结束', CANCELED: '已取消' }
@@ -56,13 +60,18 @@ const typeName = computed(() => (types.value.find(t => t.typeCode === activity.v
 const goSignup = () => router.push(`/m/signup/${route.params.guid}`)
 
 onMounted(async () => {
-  const [data, ts] = await Promise.all([signupApi.promo(route.params.guid), dictApi.activityTypes()])
-  types.value = ts
-  activity.value = data.activity
-  attachments.value = data.attachments || []
-  signupOpen.value = data.signupOpen
-  signupTip.value = data.signupTip
-  qrUrl.value = await QRCode.toDataURL(data.signupUrl, { width: 200 })
+  try {
+    const [data, ts] = await Promise.all([signupApi.promo(route.params.guid), dictApi.activityTypes()])
+    types.value = ts
+    activity.value = data.activity
+    attachments.value = data.attachments || []
+    signupOpen.value = data.signupOpen
+    signupTip.value = data.signupTip
+    qrUrl.value = await QRCode.toDataURL(data.signupUrl, { width: 200 })
+  } catch (e) {
+    // 草稿与已取消活动按「链接已失效」返回，这里给出可读提示而不是白屏
+    loadError.value = e.message || '活动不存在或链接已失效'
+  }
 })
 </script>
 

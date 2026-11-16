@@ -9,6 +9,7 @@ import com.campus.activity.module.activity.service.ActivityService;
 import com.campus.activity.module.signup.entity.Registration;
 import com.campus.activity.module.signup.mapper.CollegeMapper;
 import com.campus.activity.module.signup.mapper.RegistrationMapper;
+import com.campus.activity.module.signup.vo.PublicActivityVO;
 import com.campus.activity.module.signup.vo.RegistrationVO;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -46,10 +47,17 @@ public class SignupService {
 
     /** ---------------- 宣传海报页（UI-08） ---------------- */
 
+    /**
+     * 宣传海报页（公开）。
+     * 只返回海报所需字段；草稿与已取消活动一律按「链接已失效」处理，避免未发布内容被匿名读取。
+     */
     public Map<String, Object> promo(String guid) {
         Activity a = activityService.byGuid(guid);
+        if ("DRAFT".equals(a.getStatus()) || "CANCELED".equals(a.getStatus())) {
+            throw new BusinessException(40003, "活动不存在或链接已失效");
+        }
         Map<String, Object> data = new HashMap<>();
-        data.put("activity", a);
+        data.put("activity", PublicActivityVO.of(a));
         data.put("attachments", activityService.attachments(a.getActivityId()));
         // 时效性：仅报名时段内可报名，超时给前端友好提示（FR-04 可选项）
         boolean signupOpen = "OPEN".equals(a.getStatus());
@@ -143,10 +151,12 @@ public class SignupService {
 
     public List<RegistrationVO> registrations(Long activityId, boolean maskPhone) {
         List<RegistrationVO> list = registrationMapper.listWithCheckin(activityId);
-        if (maskPhone) {
-            list.forEach(v -> v.setPhoneMasked(mask(v.getPhone())));
-        } else {
-            list.forEach(v -> v.setPhoneMasked(v.getPhone()));
+        for (RegistrationVO v : list) {
+            v.setPhoneMasked(mask(v.getPhone()));
+            if (maskPhone) {
+                // 默认响应彻底移除原始号码，而不是在返回脱敏字段的同时又带上 phone
+                v.setPhone(null);
+            }
         }
         return list;
     }
@@ -165,7 +175,7 @@ public class SignupService {
         for (RegistrationVO v : list) {
             List<String> row = new ArrayList<>();
             row.add(v.getName());
-            row.add(v.getPhoneMasked());
+            row.add(maskPhone || v.getPhone() == null ? v.getPhoneMasked() : v.getPhone());
             row.add(v.getCollegeName());
             row.add(String.valueOf(v.getSignupTime()));
             row.add(v.getCheckinTime() == null ? "未签到" : String.valueOf(v.getCheckinTime()));

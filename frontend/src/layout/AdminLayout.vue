@@ -33,11 +33,14 @@ const profile = ref({})
 
 onMounted(async () => {
   profile.value = await authApi.current()
+  // 角色信息供名单页等页面判断隐私权限，避免各页面重复请求
+  localStorage.setItem('profile', JSON.stringify(profile.value || {}))
 })
 
 const logout = async () => {
   await authApi.logout()
   localStorage.removeItem('token')
+  localStorage.removeItem('profile')
   router.push('/login')
 }
 </script>

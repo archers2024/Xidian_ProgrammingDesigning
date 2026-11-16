@@ -7,13 +7,28 @@ public class GeoUtil {
 
     private static final double EARTH_RADIUS = 6371000.0;
 
+    /**
+     * 解析 "lng,lat"。
+     * 拒绝缺失、多余分量、NaN / Infinity 以及超出经纬度范围的坐标，避免非法值绕过围栏判断。
+     */
     public static double[] parse(String lngLat) {
         if (lngLat == null || !lngLat.contains(",")) {
             return null;
         }
         String[] arr = lngLat.split(",");
+        if (arr.length != 2) {
+            return null;
+        }
         try {
-            return new double[]{Double.parseDouble(arr[0].trim()), Double.parseDouble(arr[1].trim())};
+            double lng = Double.parseDouble(arr[0].trim());
+            double lat = Double.parseDouble(arr[1].trim());
+            if (!Double.isFinite(lng) || !Double.isFinite(lat)) {
+                return null;
+            }
+            if (lng < -180 || lng > 180 || lat < -90 || lat > 90) {
+                return null;
+            }
+            return new double[]{lng, lat};
         } catch (NumberFormatException e) {
             return null;
         }

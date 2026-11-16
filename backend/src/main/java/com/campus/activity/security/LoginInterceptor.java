@@ -1,6 +1,8 @@
 package com.campus.activity.security;
 
 import com.campus.activity.common.R;
+import com.campus.activity.module.system.entity.Admin;
+import com.campus.activity.module.system.mapper.AdminMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,16 +22,18 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class LoginInterceptor implements HandlerInterceptor {
 
     private final JwtUtil jwtUtil;
+    private final AdminMapper adminMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public LoginInterceptor(JwtUtil jwtUtil) {
+    public LoginInterceptor(JwtUtil jwtUtil, AdminMapper adminMapper) {
         this.jwtUtil = jwtUtil;
+        this.adminMapper = adminMapper;
     }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String uri = normalizePath(request);
-        boolean needLogin = uri.startsWith("/admin/") || uri.startsWith("/super/");
+        boolean needLogin = uri.startsWith("/admin/") || uri.startsWith("/super/") || uri.startsWith("/file/");
         if (!needLogin) {
             return true;
         }
@@ -47,9 +51,29 @@ public class LoginInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        Long adminId = Long.valueOf(String.valueOf(claims.get("adminId")));
-        String roleCode = String.valueOf(claims.get("roleCode"));
-        AdminContext.set(new AdminContext.CurrentAdmin(adminId, claims.getSubject(), roleCode));
+        Long adminId;
+        try {
+            adminId = Long.valueOf(String.valueOf(claims.get("adminId")));
+        } catch (Exception e) {
+            writeUnauthorized(response, "未登录或登录已过期");
+            return false;
+        }
+
+        // 每次请求回查账号：停用立即生效，角色以库中当前值为准，不信任令牌里的旧角色
+        Admin admin = adminMapper.selectById(adminId);
+        if (admin == null || admin.getStatus() == null || admin.getStatus() != 1) {
+            writeUnauthorized(response, "账号已停用，请联系超级管理员");
+            return false;
+        }
+        Object tvClaim = claims.get("tv");
+        int tokenVersion = tvClaim == null ? 0 : Integer.parseInt(String.valueOf(tvClaim));
+        int currentVersion = admin.getTokenVersion() == null ? 0 : admin.getTokenVersion();
+        if (tokenVersion != currentVersion) {
+            writeUnauthorized(response, "登录状态已失效，请重新登录");
+            return false;
+        }
+
+        AdminContext.set(new AdminContext.CurrentAdmin(adminId, admin.getUsername(), admin.getRoleCode()));
 
         if (uri.startsWith("/super/") && !AdminContext.get().isSuper()) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);

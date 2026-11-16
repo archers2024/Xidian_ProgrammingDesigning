@@ -27,7 +27,10 @@
         <el-form-item label="账号"><el-input v-model="form.username" /></el-form-item>
         <el-form-item label="姓名"><el-input v-model="form.realName" /></el-form-item>
         <el-form-item label="部门"><el-input v-model="form.dept" /></el-form-item>
-        <el-form-item label="初始密码"><el-input v-model="form.passwordHash" placeholder="不填则默认 12345678" /></el-form-item>
+        <el-form-item label="初始密码">
+          <el-input v-model="form.password" type="password" show-password
+                    placeholder="必填，至少 8 位且含字母和数字" />
+        </el-form-item>
         <el-form-item label="角色">
           <el-select v-model="form.roleCode">
             <el-option label="活动管理员" value="ADMIN" />
@@ -45,20 +48,40 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminApi } from '../../api'
 
 const list = ref([])
 const visible = ref(false)
-const form = reactive({ username: '', realName: '', dept: '', passwordHash: '', roleCode: 'ADMIN' })
+const form = reactive({ username: '', realName: '', dept: '', password: '', roleCode: 'ADMIN' })
 
 const load = async () => { list.value = await adminApi.list() }
 onMounted(load)
 
-const openCreate = () => { Object.assign(form, { username: '', realName: '', dept: '', passwordHash: '', roleCode: 'ADMIN' }); visible.value = true }
-const submit = async () => { await adminApi.create(form); visible.value = false; ElMessage.success('已新增'); load() }
+const openCreate = () => { Object.assign(form, { username: '', realName: '', dept: '', password: '', roleCode: 'ADMIN' }); visible.value = true }
+
+const submit = async () => {
+  if (!form.username || !form.password) {
+    ElMessage.warning('请填写账号和初始密码')
+    return
+  }
+  if (form.password.length < 8 || !/[A-Za-z]/.test(form.password) || !/\d/.test(form.password)) {
+    ElMessage.warning('密码至少 8 位且同时包含字母和数字')
+    return
+  }
+  await adminApi.create(form)
+  visible.value = false
+  ElMessage.success('已新增')
+  load()
+}
 const toggle = async (row) => { await adminApi.status(row.adminId, row.status === 1 ? 0 : 1); load() }
-const resetPwd = async (row) => { await adminApi.resetPwd(row.adminId); ElMessage.success('密码已重置为 12345678') }
+const resetPwd = async (row) => {
+  const data = await adminApi.resetPwd(row.adminId)
+  const pwd = (data && data.tempPassword) || ''
+  // 一次性密码只在本次响应里出现，关掉弹窗后无法再查
+  ElMessageBox.alert(`一次性密码：${pwd}\n\n请立即转交本人，关闭后不再显示；该账号原有登录状态已失效。`,
+    '密码已重置', { confirmButtonText: '已记录' })
+}
 </script>
 
 <style scoped>

@@ -1,6 +1,8 @@
 package com.campus.activity.module.signup.vo;
 
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.time.LocalDateTime;
 
 /**
@@ -13,6 +15,8 @@ public class RegistrationVO {
 
     private String name;
 
+    /** 原始手机号：仅在授权查看时返回，默认脱敏场景下为 null 且不参与序列化 */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String phone;
 
     private String collegeName;

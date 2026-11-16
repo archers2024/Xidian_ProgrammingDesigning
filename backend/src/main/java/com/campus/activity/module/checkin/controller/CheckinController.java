@@ -1,9 +1,11 @@
 package com.campus.activity.module.checkin.controller;
 
 import com.campus.activity.common.R;
+import com.campus.activity.module.checkin.dto.CheckinRequest;
 import com.campus.activity.module.checkin.service.CheckinService;
 import com.campus.activity.util.ExcelUtil;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.*;
 
@@ -27,15 +29,15 @@ public class CheckinController {
         return R.ok(checkinService.codeBoard(activityId));
     }
 
-    /** 提交签到（UI-11，对外开放） */
+    /** 提交签到（UI-11，对外开放）。activityId / phone 缺失或格式错误由 Bean Validation 拦截为 40001。 */
     @PostMapping("/checkin")
-    public R<Map<String, Object>> checkin(@RequestBody Map<String, String> body) {
+    public R<Map<String, Object>> checkin(@Valid @RequestBody CheckinRequest req) {
         return R.ok(checkinService.checkin(
-                Long.valueOf(body.get("activityId")),
-                body.get("phone"),
-                body.get("code"),
-                body.get("lngLat"),
-                checkinService.fingerprint(body.get("device"))));
+                req.getActivityId(),
+                req.getPhone(),
+                req.getCode(),
+                req.getLngLat(),
+                checkinService.fingerprint(req.getDevice())));
     }
 
     /** 签到记录（UI-06） */

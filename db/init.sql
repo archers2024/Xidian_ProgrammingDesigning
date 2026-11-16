@@ -18,6 +18,7 @@ CREATE TABLE t_admin (
   dept             VARCHAR(100) DEFAULT NULL COMMENT '所属部门',
   role_code        VARCHAR(20)  NOT NULL DEFAULT 'ADMIN' COMMENT 'ADMIN/SUPER',
   status           TINYINT      NOT NULL DEFAULT 1 COMMENT '1启用 0停用',
+  token_version    INT          NOT NULL DEFAULT 0 COMMENT '令牌版本：停用/重置密码/改角色时自增，旧令牌即刻失效',
   last_login_time  DATETIME     DEFAULT NULL COMMENT '最近登录时间',
   create_time      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (admin_id),

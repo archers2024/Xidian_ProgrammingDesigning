@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -49,13 +51,19 @@ public class FileController {
             return R.business("文件大小不能超过 20MB");
         }
         try {
-            String dir = uploadDir + File.separator + LocalDate.now();
-            File folder = new File(dir);
-            if (!folder.exists() && !folder.mkdirs()) {
-                return R.business("创建上传目录失败");
+            // 统一以绝对路径为基准：先规范化上传根目录，再在此之上解析日期子目录与目标文件，
+            // 避免「创建目录用相对路径、transferTo 交给容器解析」两套基准不一致导致 FileNotFoundException。
+            Path root = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Path dir = root.resolve(LocalDate.now().toString()).normalize();
+            if (!dir.startsWith(root)) {
+                return R.business("上传目录配置非法");
             }
+            Files.createDirectories(dir);
             String name = UUID.randomUUID() + "." + ext;
-            File dest = new File(folder, name);
+            Path dest = dir.resolve(name).normalize();
+            if (!dest.startsWith(root)) {
+                return R.business("上传路径非法");
+            }
             file.transferTo(dest);
             Map<String, String> data = new HashMap<>();
             data.put("url", urlPrefix + LocalDate.now() + "/" + name);
