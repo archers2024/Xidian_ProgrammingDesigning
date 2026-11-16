@@ -134,9 +134,21 @@ if (Test-Port 3306) {
     }
     $mysqld = Join-Path $MySQLBin 'mysqld.exe'
     if (!(Test-Path (Join-Path $DataDir 'ibdata1'))) {
-        Write-Host "      工程内数据目录未初始化：$DataDir" -ForegroundColor Red
-        Write-Host '      请先双击「初始化数据库.cmd」跑一次（约 30 秒），或改用系统 MySQL 服务。' -ForegroundColor Yellow
-        Pause-Exit 1
+        # 全新 clone：数据目录不存在，直接调初始化脚本，不再要求先手动点一次
+        $initScript = Join-Path $PSScriptRoot 'init-db.ps1'
+        if (Test-Path $initScript) {
+            Write-Host '      首次启动：正在初始化数据库（约 30 秒）...' -ForegroundColor Yellow
+            & powershell -NoProfile -ExecutionPolicy Bypass -File $initScript
+            if (!(Test-Path (Join-Path $DataDir 'ibdata1'))) {
+                Write-Host '      数据库初始化失败，请单独运行「初始化数据库.cmd」查看详细输出' -ForegroundColor Red
+                Pause-Exit 1
+            }
+            Write-Host '      数据库初始化完成' -ForegroundColor Green
+        } else {
+            Write-Host "      工程内数据目录未初始化：$DataDir" -ForegroundColor Red
+            Write-Host '      请先双击「初始化数据库.cmd」跑一次（约 30 秒），或改用系统 MySQL 服务。' -ForegroundColor Yellow
+            Pause-Exit 1
+        }
     }
     # sql-mode 随实例启动生效：统计接口的 GROUP BY 依赖它，避免每次重启后再手工 SET GLOBAL
     $argLine = '--basedir="{0}" --datadir="{1}" --port=3306 --bind-address=127.0.0.1 --mysqlx=0 --skip-log-bin --log-error="{1}\mysql-error.log" --sql-mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"' -f $MySQLBin, $DataDir
