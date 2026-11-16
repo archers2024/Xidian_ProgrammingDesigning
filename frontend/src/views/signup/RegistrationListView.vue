@@ -14,13 +14,13 @@
         <template #default="{ row }">{{ row.phoneMasked }}</template>
       </el-table-column>
       <el-table-column prop="collegeName" label="学院" width="180" />
-      <el-table-column prop="signupTime" label="报名时间" width="180" />
+      <el-table-column prop="signupTime" label="报名时间" width="180" :formatter="timeCol()" />
       <el-table-column label="签到状态" width="120">
         <template #default="{ row }">
           <el-tag :type="row.checkinTime ? 'success' : 'info'">{{ row.checkinTime ? '已签到' : '未签到' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="checkinTime" label="签到时间" width="180" />
+      <el-table-column prop="checkinTime" label="签到时间" width="180" :formatter="timeCol()" />
       <el-table-column label="签到方式" width="120">
         <template #default="{ row }">
           {{ row.checkinMethod === 'ACCURATE' ? '准确签到' : (row.checkinMethod === 'BASIC' ? '基本签到' : '-') }}
@@ -33,6 +33,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { timeCol } from '../../utils/format'
 import { signupApi } from '../../api'
 
 const route = useRoute()

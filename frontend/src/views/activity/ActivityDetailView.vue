@@ -6,12 +6,12 @@
       <el-descriptions-item label="状态">
         <el-tag>{{ statusLabel(activity.status) }}</el-tag>
       </el-descriptions-item>
-      <el-descriptions-item label="活动时间">{{ activity.startTime }} ~ {{ activity.endTime }}</el-descriptions-item>
-      <el-descriptions-item label="报名截止">{{ activity.signupDeadline }}</el-descriptions-item>
+      <el-descriptions-item label="活动时间">{{ fmtTime(activity.startTime) }} ~ {{ fmtTime(activity.endTime) }}</el-descriptions-item>
+      <el-descriptions-item label="报名截止">{{ fmtTime(activity.signupDeadline) }}</el-descriptions-item>
       <el-descriptions-item label="地点">{{ activity.location }}</el-descriptions-item>
       <el-descriptions-item label="报名情况">{{ activity.signedCount }} / {{ activity.quota }}</el-descriptions-item>
       <el-descriptions-item label="直播链接">{{ activity.liveUrl || '-' }}</el-descriptions-item>
-      <el-descriptions-item label="发布时间">{{ activity.publishTime || '未发布' }}</el-descriptions-item>
+      <el-descriptions-item label="发布时间">{{ activity.publishTime ? fmtTime(activity.publishTime) : '未发布' }}</el-descriptions-item>
       <el-descriptions-item label="活动简介" :span="2">{{ activity.introduction || '-' }}</el-descriptions-item>
     </el-descriptions>
 
@@ -41,6 +41,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { fmtTime } from '../../utils/format'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import QRCode from 'qrcode'

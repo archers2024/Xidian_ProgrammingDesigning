@@ -11,7 +11,7 @@
       <el-table-column prop="name" label="姓名" width="120" />
       <el-table-column prop="phone" label="手机号" width="150" />
       <el-table-column prop="collegeCode" label="学院" width="160" />
-      <el-table-column prop="checkinTime" label="签到时间" width="180" />
+      <el-table-column prop="checkinTime" label="签到时间" width="180" :formatter="timeCol()" />
       <el-table-column label="签到方式" width="140">
         <template #default="{ row }">
           <el-tag :type="row.method === 'ACCURATE' ? 'success' : 'info'">
@@ -26,6 +26,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { timeCol } from '../../utils/format'
 import { checkinApi } from '../../api'
 
 const route = useRoute()

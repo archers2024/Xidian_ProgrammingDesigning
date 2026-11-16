@@ -3,7 +3,7 @@
   <div class="page">
     <div v-if="!success" class="form">
       <h2>{{ activity.title }}</h2>
-      <p class="sub">{{ activity.startTime }} · {{ activity.location }}</p>
+      <p class="sub">{{ fmtTime(activity.startTime) }} · {{ activity.location }}</p>
       <label>姓名<input v-model="form.name" placeholder="请输入姓名" /></label>
       <label>手机号<input v-model="form.phone" type="tel" maxlength="11" placeholder="请输入手机号" /></label>
       <label>学院
@@ -20,7 +20,7 @@
       <h2>报名成功</h2>
       <p class="row">姓名：{{ result.name }}</p>
       <p class="row">手机号：{{ result.phone }}</p>
-      <p class="row">报名时间：{{ result.signupTime }}</p>
+      <p class="row">报名时间：{{ fmtTime(result.signupTime, true) }}</p>
       <p class="tip">请准时到场，现场扫码签到即可</p>
       <img :src="qrUrl" class="qr" v-if="qrUrl" />
       <p class="hint">截图保存，签到时出示</p>
@@ -31,6 +31,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { fmtTime } from '../utils/format'
 import QRCode from 'qrcode'
 import { dictApi, signupApi } from '../api'
 

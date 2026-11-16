@@ -10,9 +10,9 @@
         <span class="tag">{{ typeName }}</span>
         <span class="tag">{{ statusLabel }}</span>
       </div>
-      <p class="row">时间：{{ activity.startTime }} ~ {{ activity.endTime }}</p>
+      <p class="row">时间：{{ fmtTime(activity.startTime) }} ~ {{ fmtTime(activity.endTime) }}</p>
       <p class="row">地点：{{ activity.location }}</p>
-      <p class="row">报名截止：{{ activity.signupDeadline }}</p>
+      <p class="row">报名截止：{{ fmtTime(activity.signupDeadline) }}</p>
       <p class="row">名额：{{ activity.signedCount }} / {{ activity.quota }}</p>
       <p class="intro">{{ activity.introduction }}</p>
 
@@ -39,6 +39,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { fmtTime } from '../utils/format'
 import { useRoute, useRouter } from 'vue-router'
 import QRCode from 'qrcode'
 import { dictApi, signupApi } from '../api'

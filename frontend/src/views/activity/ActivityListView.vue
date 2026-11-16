@@ -36,12 +36,12 @@
           <el-tag :type="statusTag(row.status)">{{ statusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="startTime" label="开始时间" width="170" />
+      <el-table-column prop="startTime" label="开始时间" width="170" :formatter="timeCol()" />
       <el-table-column prop="location" label="地点" width="140" />
       <el-table-column label="报名" width="110">
         <template #default="{ row }">{{ row.signedCount }} / {{ row.quota }}</template>
       </el-table-column>
-      <el-table-column prop="publishTime" label="发布时间" width="170" />
+      <el-table-column prop="publishTime" label="发布时间" width="170" :formatter="timeCol()" />
       <el-table-column label="操作" width="260" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="$router.push(`/activity/${row.activityId}`)">详情</el-button>
@@ -60,6 +60,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
+import { timeCol } from '../../utils/format'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { activityApi, dictApi } from '../../api'
 

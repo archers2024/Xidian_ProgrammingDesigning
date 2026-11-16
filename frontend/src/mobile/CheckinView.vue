@@ -11,7 +11,7 @@
     <div v-if="success" class="ok">
       <div class="icon">✓</div>
       <p>签到成功</p>
-      <p class="row">{{ okInfo.name }} · {{ okInfo.checkinTime }}</p>
+      <p class="row">{{ okInfo.name }} · {{ fmtTime(okInfo.checkinTime, true) }}</p>
       <p class="row">方式：{{ okInfo.method === 'ACCURATE' ? '准确签到' : '基本签到' }}</p>
     </div>
   </div>
@@ -20,6 +20,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { fmtTime } from '../utils/format'
 import { checkinApi } from '../api'
 
 const route = useRoute()
