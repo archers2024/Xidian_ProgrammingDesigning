@@ -9,11 +9,11 @@
     </div>
     <el-table :data="list" border v-loading="loading">
       <el-table-column type="index" label="#" width="60" />
-      <el-table-column prop="name" label="姓名" width="120" />
-      <el-table-column label="手机号" width="150">
+      <el-table-column prop="name" label="姓名" min-width="120" />
+      <el-table-column label="手机号" min-width="150">
         <template #default="{ row }">{{ row.phoneMasked }}</template>
       </el-table-column>
-      <el-table-column prop="collegeName" label="学院" width="180" />
+      <el-table-column prop="collegeName" label="学院" min-width="180" />
       <el-table-column prop="signupTime" label="报名时间" width="180" :formatter="timeCol()" />
       <el-table-column label="签到状态" width="120">
         <template #default="{ row }">

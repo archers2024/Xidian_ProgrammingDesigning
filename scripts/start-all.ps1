@@ -138,7 +138,8 @@ if (Test-Port 3306) {
         Write-Host '      请先双击「初始化数据库.cmd」跑一次（约 30 秒），或改用系统 MySQL 服务。' -ForegroundColor Yellow
         Pause-Exit 1
     }
-    $argLine = '--basedir="{0}" --datadir="{1}" --port=3306 --bind-address=127.0.0.1 --mysqlx=0 --skip-log-bin --log-error="{1}\mysql-error.log"' -f $MySQLBin, $DataDir
+    # sql-mode 随实例启动生效：统计接口的 GROUP BY 依赖它，避免每次重启后再手工 SET GLOBAL
+    $argLine = '--basedir="{0}" --datadir="{1}" --port=3306 --bind-address=127.0.0.1 --mysqlx=0 --skip-log-bin --log-error="{1}\mysql-error.log" --sql-mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"' -f $MySQLBin, $DataDir
     Start-Hidden -File $mysqld -Arguments $argLine -WorkingDir $DataDir
     if (Wait-Port 3306 45) {
         Write-Host '      MySQL 已就绪' -ForegroundColor Green
@@ -167,15 +168,44 @@ if (Test-Port 8080) {
         $mysqlCli = Join-Path $MySQLBin 'mysql.exe'
         $dbExists = (& $mysqlCli @('-h127.0.0.1', '-P3306', "-u$DbUser", "-p$DbPass", '-N', '-e', "SHOW DATABASES LIKE '$DbName';") 2>$null)
         if (!"$dbExists".Trim()) {
-            Write-Host "      数据库 $DbName 不存在，后端会连不上。" -ForegroundColor Red
-            Write-Host "      先导入：mysql --default-character-set=utf8mb4 -uroot -p < db\campus_activity_dump.sql" -ForegroundColor Yellow
-            Pause-Exit 1
+            # 有快照就自动导入，省掉“先导入再启动”这一步
+            $dump = Join-Path $Root 'db\campus_activity_dump.sql'
+            if (Test-Path $dump) {
+                Write-Host "      数据库 $DbName 不存在，正在自动导入 db\campus_activity_dump.sql ..." -ForegroundColor Yellow
+                & cmd /c "`"$mysqlCli`" -h127.0.0.1 -P3306 -u$DbUser -p$DbPass --default-character-set=utf8mb4 < `"$dump`"" 2>$null | Out-Null
+                $dbExists = (& $mysqlCli @('-h127.0.0.1', '-P3306', "-u$DbUser", "-p$DbPass", '-N', '-e', "SHOW DATABASES LIKE '$DbName';") 2>$null)
+            }
+            if (!"$dbExists".Trim()) {
+                Write-Host "      数据库 $DbName 不存在，且自动导入失败。" -ForegroundColor Red
+                Write-Host '      手动导入：mysql --default-character-set=utf8mb4 -uroot -p < db\campus_activity_dump.sql' -ForegroundColor Yellow
+                Pause-Exit 1
+            }
+            Write-Host '      数据库已就绪' -ForegroundColor Green
         }
     }
     if (!(Test-Path $Jar)) {
-        Write-Host "      找不到 jar：$Jar" -ForegroundColor Red
-        Write-Host '      请先在 backend 目录执行：mvn -DskipTests package' -ForegroundColor Red
-        Pause-Exit 1
+        # 有 Maven Wrapper 就自动编译，clone 下来不用先跑安装脚本
+        $mvnw = Join-Path $Root 'backend\mvnw.cmd'
+        if (Test-Path $mvnw) {
+            Write-Host '      首次启动：正在编译后端（首次会下载 Maven，约 1-3 分钟）...' -ForegroundColor Yellow
+            if (!$env:JAVA_HOME) {
+                $javaForBuild = Resolve-Java $JavaExe
+                if ($javaForBuild) { $env:JAVA_HOME = Split-Path -Parent (Split-Path -Parent $javaForBuild) }
+            }
+            Push-Location (Join-Path $Root 'backend')
+            & cmd /c "`"$mvnw`" -q -DskipTests package"
+            $buildRc = $LASTEXITCODE
+            Pop-Location
+            if ($buildRc -ne 0 -or !(Test-Path $Jar)) {
+                Write-Host '      编译失败，请运行「首次安装.cmd」查看详细日志' -ForegroundColor Red
+                Pause-Exit 1
+            }
+            Write-Host '      编译完成' -ForegroundColor Green
+        } else {
+            Write-Host "      找不到 jar：$Jar" -ForegroundColor Red
+            Write-Host '      请先双击「首次安装.cmd」，或在 backend 目录执行 mvnw.cmd -DskipTests package' -ForegroundColor Yellow
+            Pause-Exit 1
+        }
     }
     $java = Resolve-Java $JavaExe
     if (!$java) {
@@ -215,8 +245,20 @@ if (Test-Port 5173) {
     }
     $vite = Join-Path $FrontDir 'node_modules\vite\bin\vite.js'
     if (!(Test-Path $vite)) {
-        Write-Host "      前端依赖未安装，请先在 frontend 目录执行：npm install" -ForegroundColor Red
-        Pause-Exit 1
+        Write-Host '      首次启动：正在安装前端依赖（约 1-5 分钟）...' -ForegroundColor Yellow
+        Push-Location $FrontDir
+        if (Test-Path (Join-Path $FrontDir 'package-lock.json')) {
+            & cmd /c 'npm ci'
+        } else {
+            & cmd /c 'npm install'
+        }
+        $npmRc = $LASTEXITCODE
+        Pop-Location
+        if ($npmRc -ne 0 -or !(Test-Path $vite)) {
+            Write-Host '      前端依赖安装失败，请运行「首次安装.cmd」查看详细日志' -ForegroundColor Red
+            Pause-Exit 1
+        }
+        Write-Host '      依赖安装完成' -ForegroundColor Green
     }
     Start-Hidden -File $node -Arguments 'node_modules/vite/bin/vite.js --host 0.0.0.0 --port 5173' -WorkingDir $FrontDir
     if (Wait-Port 5173 60) {

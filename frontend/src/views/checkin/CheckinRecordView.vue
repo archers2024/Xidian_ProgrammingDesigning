@@ -8,9 +8,9 @@
     </div>
     <el-table :data="list" border>
       <el-table-column type="index" label="#" width="60" />
-      <el-table-column prop="name" label="姓名" width="120" />
-      <el-table-column prop="phone" label="手机号" width="150" />
-      <el-table-column prop="collegeCode" label="学院" width="160" />
+      <el-table-column prop="name" label="姓名" min-width="120" />
+      <el-table-column prop="phone" label="手机号" min-width="150" />
+      <el-table-column prop="collegeCode" label="学院" min-width="160" />
       <el-table-column prop="checkinTime" label="签到时间" width="180" :formatter="timeCol()" />
       <el-table-column label="签到方式" width="140">
         <template #default="{ row }">

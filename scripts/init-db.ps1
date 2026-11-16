@@ -119,7 +119,7 @@ Write-Host '      完成' -ForegroundColor Green
 
 # 2. 临时启动实例并设置 root 密码
 Write-Host '[2/4] 启动实例并设置 root 密码 ...' -ForegroundColor Yellow
-$argLine = '--basedir="{0}" --datadir="{1}" --port={2} --bind-address=127.0.0.1 --mysqlx=0 --skip-log-bin --log-error="{1}\mysql-error.log"' -f $MySQLBin, $DataDir, $Port
+$argLine = '--basedir="{0}" --datadir="{1}" --port={2} --bind-address=127.0.0.1 --mysqlx=0 --skip-log-bin --log-error="{1}\mysql-error.log" --sql-mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"' -f $MySQLBin, $DataDir, $Port
 Start-Hidden -File $mysqld -Arguments $argLine -WorkingDir $DataDir
 $ok = $false
 for ($i = 0; $i -lt 45; $i++) {

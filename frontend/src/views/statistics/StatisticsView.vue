@@ -23,8 +23,14 @@
 
 <script setup>
 import { onMounted, reactive, ref, nextTick } from 'vue'
-import * as echarts from 'echarts'
+// 按需引入：整包 echarts 约 1MB，实际只用到柱状图、折线图与四个组件
+import * as echarts from 'echarts/core'
+import { BarChart, LineChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, LegendComponent, TitleComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import { statisticsApi } from '../../api'
+
+echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent, CanvasRenderer])
 
 const days = ref(30)
 const data = reactive({ activityCount: 0, signupCount: 0, checkinCount: 0, checkinRate: 0, typeStats: [], dailyStats: [] })

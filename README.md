@@ -60,13 +60,19 @@
 
 > 整个项目路径必须是纯英文。mysqld 在 Windows 下解析含中文的 `--datadir` 会截断路径并报 `Failed to set datadir (OS errno: 2)`。
 
-### 三步跑起来
+### 直接一键启动
 
-**第 1 步 · 首次安装**（只跑一次）
+clone 后双击 `启动全部.cmd`（`start-all.cmd`）即可，缺什么自动补：数据库不存在 → 自动建库导入快照；jar 不存在 → 用自带 `mvnw` 编译；`node_modules` 不存在 → 自动 `npm ci`；MySQL 没在跑 → 用 `db\data` 起独立实例。首次 5–10 分钟，之后约 10 秒。
+
+停止用 `停止全部.cmd`。脚本自动探测 MySQL / JDK 安装位置，自动取默认路由网卡的 IP 拼手机端地址；数据目录固定为 `<工程根>\db\data`，跟着工程走。
+
+### 分步执行（想自己控制每一步）
+
+**第 1 步 · 首次安装**（可跳过，启动脚本会自动做）
 
 双击 `首次安装.cmd`（`install.cmd`）：自动探测 JDK → 编译后端 jar → 安装前端依赖。首次约 5–10 分钟，之后跳过。
 
-仓库不提交 `backend/target` 与 `frontend/node_modules`，这一步不能省。
+仓库不提交 `backend/target` 与 `frontend/node_modules`。
 
 **第 2 步 · 准备数据库**（二选一）
 
@@ -79,11 +85,10 @@
 
 **第 3 步 · 启动**
 
-双击 `启动全部.cmd`（`start-all.cmd`），依次拉起 MySQL → 后端 → 前端，自动跳过已在运行的组件，末尾打印访问地址。停止用 `停止全部.cmd`。
+双击 `启动全部.cmd`（`start-all.cmd`），依次拉起 MySQL → 后端 → 前端，自动跳过已在运行的组件，末尾打印访问地址。
 
-- 脚本自动探测 MySQL / JDK 安装位置，换机器一般不用改配置；探测失败才需要填 `scripts/start-all.ps1` 顶部的 `$MySQLBin` / `$JavaExe`。
-- 数据目录固定为 `<工程根>\db\data`，跟着工程走。
-- 会自动重设统计接口依赖的 `sql_mode`，并自动取默认路由网卡的 IP 拼手机端地址。
+- 用工程内实例时，`sql_mode` 已写进 mysqld 启动参数，统计接口不会因重启失效；脚本仍保留一次 `SET GLOBAL` 兜底，兼容系统 MySQL 服务。
+- 探测失败才需要填 `scripts/start-all.ps1` 顶部的 `$MySQLBin` / `$JavaExe`。
 
 ### 手动启动
 

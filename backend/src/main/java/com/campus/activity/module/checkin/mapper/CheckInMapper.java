@@ -32,7 +32,10 @@ public interface CheckInMapper extends BaseMapper<CheckIn> {
             "LEFT JOIN t_checkin k ON k.reg_id = r.reg_id " +
             "WHERE a.activity_id IN " +
             "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach> " +
-            "GROUP BY a.type_code</script>")
+            "GROUP BY a.type_code " +
+            // 报名与签到都为 0 的类型不进图表，避免 x 轴出现无意义的 0 值分类
+            "HAVING COUNT(DISTINCT r.reg_id) &gt; 0 OR COUNT(DISTINCT k.checkin_id) &gt; 0" +
+            "</script>")
     List<TypeStatVO> statByType(@Param("ids") List<Long> ids);
 
     /** 按日报名趋势（FR-11）。同样限定在有效活动集合内，避免趋势与汇总对不上。 */
