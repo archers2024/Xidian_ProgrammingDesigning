@@ -7,11 +7,13 @@
 
 $ErrorActionPreference = 'Continue'
 
-# ==================== 配置区（换机器只改这里） ====================
-$MySQLBin = 'C:\Program Files\MySQL\MySQL Server 8.0\bin'
-$JavaExe  = 'F:\JDK\bin\java.exe'
+# ==================== 配置区（换机器优先改这里） ====================
+# 留空 = 自动探测（PATH、JAVA_HOME、Program Files\MySQL、常见安装目录）；
+# 探测失败时再填绝对路径。
+$MySQLBin = ''          # 例：C:\Program Files\MySQL\MySQL Server 8.0\bin
+$JavaExe  = ''          # 例：C:\Program Files\Java\jdk-17\bin\java.exe
 $DbUser   = 'root'
-$DbPass   = '123456'
+$DbPass   = '123456'    # 改成你自己 MySQL 的 root 密码
 $DbName   = 'campus_activity'
 # ================================================================
 
@@ -48,6 +50,48 @@ function Test-Port([int]$Port) {
     return [bool]$c
 }
 
+# 自动探测 mysql.exe / mysqld.exe 所在目录
+function Resolve-MySqlBin([string]$Hint) {
+    if ($Hint -and (Test-Path (Join-Path $Hint 'mysqld.exe'))) { return $Hint }
+    $c = Get-Command mysqld.exe -ErrorAction SilentlyContinue
+    if ($c) { return (Split-Path -Parent $c.Source) }
+    foreach ($r in @("$env:ProgramFiles\MySQL", "${env:ProgramFiles(x86)}\MySQL", 'D:\MySQL', 'D:\mysql', 'C:\MySQL', 'C:\mysql')) {
+        if (!(Test-Path $r)) { continue }
+        # $r 可能是 MySQL 安装根（其下有 bin），也可能是各版本目录的父级
+        if (Test-Path (Join-Path $r 'bin\mysqld.exe')) { return (Join-Path $r 'bin') }
+        $hit = Get-ChildItem $r -Directory -ErrorAction SilentlyContinue |
+               Where-Object { Test-Path (Join-Path $_.FullName 'bin\mysqld.exe') } |
+               Sort-Object Name -Descending | Select-Object -First 1
+        if ($hit) { return (Join-Path $hit.FullName 'bin') }
+    }
+    return $null
+}
+
+# 自动探测 java.exe：优先完整 JDK（带 javac）且版本 17+，其次 JAVA_HOME，最后 PATH
+function Resolve-Java([string]$Hint) {
+    if ($Hint -and (Test-Path $Hint)) { return $Hint }
+    $cands = @()
+    foreach ($r in @("$env:ProgramFiles\Java", "$env:ProgramFiles\Eclipse Adoptium", 'C:\Program Files\Java', 'F:\JDK', 'D:\JDK', 'C:\JDK', 'F:\Java', 'D:\Java')) {
+        if (!(Test-Path $r)) { continue }
+        if (Test-Path (Join-Path $r 'bin\java.exe')) { $cands += (Get-Item $r) }
+        $cands += Get-ChildItem $r -Directory -ErrorAction SilentlyContinue |
+                  Where-Object { Test-Path (Join-Path $_.FullName 'bin\java.exe') }
+    }
+    $jdkOnly = @($cands | Where-Object { Test-Path (Join-Path $_.FullName 'bin\javac.exe') })
+    if ($jdkOnly.Count -gt 0) { $cands = $jdkOnly }
+    $preferred = $cands | Where-Object { $_.Name -match 'jdk[-_ ]?(17|18|19|2[0-9])|jdk1[7-9]' } |
+                 Sort-Object Name -Descending | Select-Object -First 1
+    if (!$preferred) { $preferred = $cands | Sort-Object Name -Descending | Select-Object -First 1 }
+    if ($preferred) { return (Join-Path $preferred.FullName 'bin\java.exe') }
+    if ($env:JAVA_HOME) {
+        $p = Join-Path $env:JAVA_HOME 'bin\java.exe'
+        if (Test-Path $p) { return $p }
+    }
+    $c = Get-Command java.exe -ErrorAction SilentlyContinue
+    if ($c) { return $c.Source }
+    return $null
+}
+
 function Wait-Port([int]$Port, [int]$Seconds) {
     for ($i = 0; $i -lt $Seconds; $i++) {
         if (Test-Port $Port) { return $true }
@@ -76,16 +120,22 @@ Write-Host ''
 
 # ---------- 1. MySQL ----------
 if (Test-Port 3306) {
-    Write-Host '[1/3] MySQL 已在运行 (3306)，跳过' -ForegroundColor Green
+    Write-Host '[1/3] MySQL 已在运行 (3306)，直接使用' -ForegroundColor Green
+    $MySQLBin = Resolve-MySqlBin $MySQLBin
 } else {
     Write-Host '[1/3] 正在启动 MySQL ...' -ForegroundColor Yellow
-    $mysqld = Join-Path $MySQLBin 'mysqld.exe'
-    if (!(Test-Path $mysqld)) {
-        Write-Host "      找不到 mysqld.exe：$mysqld" -ForegroundColor Red
+    $MySQLBin = Resolve-MySqlBin $MySQLBin
+    if (!$MySQLBin) {
+        Write-Host '      找不到 MySQL（mysqld.exe）。' -ForegroundColor Red
+        Write-Host '      两条路，任选其一：' -ForegroundColor Yellow
+        Write-Host '      A. 装 MySQL 8 后启动系统服务（net start MySQL80），再重新运行本脚本' -ForegroundColor Yellow
+        Write-Host '      B. 装好 MySQL 8 后双击「初始化数据库.cmd」，用工程自带数据目录' -ForegroundColor Yellow
         Pause-Exit 1
     }
+    $mysqld = Join-Path $MySQLBin 'mysqld.exe'
     if (!(Test-Path (Join-Path $DataDir 'ibdata1'))) {
-        Write-Host "      数据目录不存在或未初始化：$DataDir" -ForegroundColor Red
+        Write-Host "      工程内数据目录未初始化：$DataDir" -ForegroundColor Red
+        Write-Host '      请先双击「初始化数据库.cmd」跑一次（约 30 秒），或改用系统 MySQL 服务。' -ForegroundColor Yellow
         Pause-Exit 1
     }
     $argLine = '--basedir="{0}" --datadir="{1}" --port=3306 --bind-address=127.0.0.1 --mysqlx=0 --skip-log-bin --log-error="{1}\mysql-error.log"' -f $MySQLBin, $DataDir
@@ -99,8 +149,11 @@ if (Test-Port 3306) {
 }
 
 # ---------- 2. 修正 sql_mode（统计接口依赖，MySQL 重启后必须重设） ----------
-$mysql = Join-Path $MySQLBin 'mysql.exe'
-& $mysql -h127.0.0.1 -P3306 -u$DbUser -p$DbPass -e "SET GLOBAL sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';" 2>$null | Out-Null
+if ($MySQLBin) {
+    $mysql = Join-Path $MySQLBin 'mysql.exe'
+    & $mysql @('-h127.0.0.1', '-P3306', "-u$DbUser", "-p$DbPass", '-e',
+        "SET GLOBAL sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';") 2>$null | Out-Null
+}
 
 $LanIp = Get-LanIp
 
@@ -109,16 +162,34 @@ if (Test-Port 8080) {
     Write-Host '[2/3] 后端已在运行 (8080)，跳过' -ForegroundColor Green
 } else {
     Write-Host '[2/3] 正在启动后端 ...' -ForegroundColor Yellow
+    # 库不存在时后端会启动失败并刷一屏 SQLException，先在这里拦住
+    if ($MySQLBin) {
+        $mysqlCli = Join-Path $MySQLBin 'mysql.exe'
+        $dbExists = (& $mysqlCli @('-h127.0.0.1', '-P3306', "-u$DbUser", "-p$DbPass", '-N', '-e', "SHOW DATABASES LIKE '$DbName';") 2>$null)
+        if (!"$dbExists".Trim()) {
+            Write-Host "      数据库 $DbName 不存在，后端会连不上。" -ForegroundColor Red
+            Write-Host "      先导入：mysql --default-character-set=utf8mb4 -uroot -p < db\campus_activity_dump.sql" -ForegroundColor Yellow
+            Pause-Exit 1
+        }
+    }
     if (!(Test-Path $Jar)) {
         Write-Host "      找不到 jar：$Jar" -ForegroundColor Red
         Write-Host '      请先在 backend 目录执行：mvn -DskipTests package' -ForegroundColor Red
         Pause-Exit 1
     }
-    $java = $JavaExe
-    if (!(Test-Path $java)) {
-        $cmd = Get-Command java -ErrorAction SilentlyContinue
-        if ($cmd) { $java = $cmd.Source } else {
-            Write-Host '      找不到 java，请安装 JDK 17 或修改脚本里的 $JavaExe' -ForegroundColor Red
+    $java = Resolve-Java $JavaExe
+    if (!$java) {
+        Write-Host '      找不到 java。请安装 JDK 17+，或在 scripts\start-all.ps1 顶部 $JavaExe 填写完整路径。' -ForegroundColor Red
+        Pause-Exit 1
+    }
+    # Spring Boot 3 需要 JDK 17+，版本不对直接说清楚，别让它抛一堆 UnsupportedClassVersionError
+    $verLine = (& $java -version 2>&1 | Select-Object -First 1)
+    if ("$verLine" -match '"(\d+)') {
+        $major = [int]$Matches[1]
+        if ($major -lt 17) {
+            Write-Host "      当前 Java 主版本 $major，低于 17，无法运行 Spring Boot 3。" -ForegroundColor Red
+            Write-Host "      自动找到的是：$java" -ForegroundColor Red
+            Write-Host '      请安装 JDK 17+，或在 $JavaExe 里指定正确的 java.exe。' -ForegroundColor Yellow
             Pause-Exit 1
         }
     }
