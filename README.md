@@ -16,9 +16,14 @@
 ```
 .
 ├── README.md                    本文件
+├── 启动全部.cmd                 一键启动：MySQL → 后端 → 前端（英文名 start-all.cmd）
+├── 停止全部.cmd                 一键停止（英文名 stop-all.cmd）
+├── scripts/
+│   ├── start-all.ps1            启动逻辑，顶部配置 MySQL 安装路径与 JDK 路径
+│   └── stop-all.ps1             停止逻辑，MySQL 走 mysqladmin 优雅关闭
 ├── db/                          数据库交付物
 │   ├── init.sql                 建库 + 8 张表 + 字典数据
-│   ├── campus_activity_dump.sql 真实 mysqldump 导出的完整库
+│   ├── campus_activity_dump.sql 真实 mysqldump 导出的完整库（含 2 活动 / 1 报名 / 1 签到）
 │   ├── campus_activity_snapshot.sql  等价快照（中文注释版）
 │   ├── demo-data.sql            演示数据（活动/报名/签到）
 │   ├── export-dump.cmd          重新导出运行库的脚本
@@ -32,14 +37,14 @@
 │   │   ├── util/                二维码、Excel、地理围栏
 │   │   └── module/              system / activity / signup / checkin 四个业务域
 │   ├── src/main/resources/application.yml
-│   └── start-backend.cmd        本机 Windows 一键启动示例
+│   └── start-backend.cmd        转发到根目录 start-all.cmd
 ├── frontend/                    Vue 3 工程（PC 后台 + H5 同工程）
 │   ├── src/api/                 axios 实例与接口封装
 │   ├── src/router/              后台 8 路由 + H5 4 路由
 │   ├── src/views/               PC 页面
 │   ├── src/mobile/              H5 页面
 │   ├── vite.config.js           开发代理（剥离 /api/v1）
-│   └── start-frontend.cmd       本机 Windows 一键启动示例
+│   └── start-frontend.cmd       本机 Windows 启动示例
 ├── deploy/                      服务器部署包（Nginx、systemd、生产配置、安装与冒烟脚本）
 └── docs/                        实现步骤、运行步骤、接口清单、设计文档
 ```
@@ -48,10 +53,23 @@
 
 需要：JDK 17+、Maven 3.8+、MySQL 8、Node.js 18+（推荐 20）。
 
+### Windows 一键启动
+
+双击根目录的 **`启动全部.cmd`**（英文名 `start-all.cmd`），脚本依次拉起 MySQL → 后端 → 前端，自动跳过已在运行的组件，末尾打印访问地址。停止用 **`停止全部.cmd`**。
+
+- 配置区在 `scripts/start-all.ps1` 顶部：MySQL 安装路径、JDK 路径，换机器只改这两处。
+- 数据目录固定为 `<工程根>\db\data`，跟着工程走，搬目录不用改脚本。
+- **工程路径必须是纯英文**：mysqld 在 Windows 下解析含中文的 `--datadir` 会截断路径并报 `Failed to set datadir`（已实测）。
+- 脚本会自动重设统计接口依赖的 `sql_mode`，并自动取默认路由网卡的 IP 拼手机端地址。
+
+### 手动启动
+
 ```bash
 # 1. 建库建表与字典数据（必须指定 utf8mb4，否则中文数据报 ERROR 1366）
 mysql --default-character-set=utf8mb4 -uroot -p < db/init.sql
-# 可选：导入 db/demo-data.sql 立刻看到 1 个活动、2 条报名、1 条签到
+# 想立刻看到真实数据，改用完整快照（含 2 个活动、1 条报名、1 条签到）
+# mysql --default-character-set=utf8mb4 -uroot -p < db/campus_activity_dump.sql
+# 或导入 db/demo-data.sql 得到 1 个活动、2 条报名、1 条签到
 
 # 2. 后端，修改 application.yml 中的数据库账号密码后执行
 cd backend
@@ -104,4 +122,5 @@ npm run dev -- --host 0.0.0.0 --port 5173
 - 未接入 Redis，登录态使用 JWT + `token_version`：停用账号、重置密码、调整角色会立即使旧令牌失效；退出仍只在前端丢弃 token。设备限频与报名 IP 限流都在单机内存计数。
 - 文件上传落本地磁盘，未接对象存储；`uploads/` 不入库。
 - 未做单元测试与自动化运行时联调，验收靠 `deploy/smoke-test.sh` 与手工主链路。
-- `start-backend.cmd` / `start-frontend.cmd` 从环境变量读取数据库连接与移动端地址，脚本内不含口令和绝对路径，换机器按 `docs/02-运行步骤.md` 设置变量即可。
+- `start-backend.cmd` 已改为转发到根目录的 `start-all.cmd`；需要单独控制后端时，按 `docs/02-运行步骤.md` 直接执行 `java -jar`。
+- `db/data/`（MySQL 二进制数据目录，约 197MB）已在 `.gitignore` 中排除，仓库只保存 SQL 形态的数据库。它包含 TLS 私钥与运行中的 redo/临时表空间，且与 MySQL 版本强绑定，不适合版本化；要迁移数据请用 `db/campus_activity_dump.sql`。

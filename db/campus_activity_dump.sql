@@ -61,7 +61,7 @@ CREATE TABLE `t_activity` (
   KEY `idx_activity_status` (`status`),
   KEY `idx_activity_type` (`type_code`),
   KEY `idx_activity_start` (`start_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='活动表';
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='活动表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -70,6 +70,7 @@ CREATE TABLE `t_activity` (
 
 LOCK TABLES `t_activity` WRITE;
 /*!40000 ALTER TABLE `t_activity` DISABLE KEYS */;
+INSERT INTO `t_activity` VALUES (1,'ACT1794829499908','0d116af514a14e0dab2eaf4d','test1','CAREER','','123','','2026-11-16 00:00:00','2026-11-17 00:00:00','2026-11-10 00:00:00',100,0,'ONGOING',0,'f538094cfa904d9c8514144e3e043efa',500,'','','2026-11-16 19:45:03',1,'2026-11-16 19:45:00','2026-11-16 19:45:38',0),(4,'ACT1794833524996','77d15c25734e447390a6f7d1','E2E-UI-自动化活动','LECTURE','由自动化脚本创建的测试活动，用于验证全流程。','教学楼A101','108.9,34.2','2026-11-16 20:42:27','2026-11-16 23:52:27','2026-11-16 20:22:27',50,1,'ONGOING',1,'dda0dbbc54a84aa6844626abfbab4f3e',500,'','','2026-11-16 20:52:08',1,'2026-11-16 20:52:05','2026-11-16 20:52:27',0);
 /*!40000 ALTER TABLE `t_activity` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -114,11 +115,12 @@ CREATE TABLE `t_admin` (
   `dept` varchar(100) DEFAULT NULL COMMENT '所属部门',
   `role_code` varchar(20) NOT NULL DEFAULT 'ADMIN' COMMENT 'ADMIN/SUPER',
   `status` tinyint NOT NULL DEFAULT '1' COMMENT '1启用 0停用',
+  `token_version` int NOT NULL DEFAULT '0' COMMENT '令牌版本：停用/重置密码/改角色时自增，旧令牌即刻失效',
   `last_login_time` datetime DEFAULT NULL COMMENT '最近登录时间',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`admin_id`),
   UNIQUE KEY `uk_admin_username` (`username`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理员表';
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理员表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -127,6 +129,7 @@ CREATE TABLE `t_admin` (
 
 LOCK TABLES `t_admin` WRITE;
 /*!40000 ALTER TABLE `t_admin` DISABLE KEYS */;
+INSERT INTO `t_admin` VALUES (1,'admin','$2a$10$Pv1tKjO9WiBkfLheeio2h.r69Ntnvl6wStdtXRwRq8rlQ.TdsT5hS','系统管理员','信息化办公室','SUPER',1,0,'2026-11-16 21:41:02','2026-11-16 19:33:58'),(2,'TYS','$2a$10$Di7A8II.lka66OBo1B1lw.dx1gS5F.WX7qB8ZO2R/SQTyIViTfNIO','管理员','TEST','SUPER',1,0,NULL,'2026-11-16 19:44:10');
 /*!40000 ALTER TABLE `t_admin` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -178,7 +181,7 @@ CREATE TABLE `t_checkin` (
   UNIQUE KEY `uk_checkin_reg` (`reg_id`) COMMENT '一人一次签到',
   KEY `idx_checkin_activity` (`activity_id`),
   KEY `idx_checkin_time` (`checkin_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='签到记录表';
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='签到记录表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -187,6 +190,7 @@ CREATE TABLE `t_checkin` (
 
 LOCK TABLES `t_checkin` WRITE;
 /*!40000 ALTER TABLE `t_checkin` DISABLE KEYS */;
+INSERT INTO `t_checkin` VALUES (2,2,4,'2026-11-16 20:52:30','BASIC','','cb65f1e52d328753');
 /*!40000 ALTER TABLE `t_checkin` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -233,7 +237,7 @@ CREATE TABLE `t_operation_log` (
   PRIMARY KEY (`log_id`),
   KEY `idx_log_admin` (`admin_id`),
   KEY `idx_log_time` (`op_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='操作日志表';
+) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='操作日志表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -242,6 +246,7 @@ CREATE TABLE `t_operation_log` (
 
 LOCK TABLES `t_operation_log` WRITE;
 /*!40000 ALTER TABLE `t_operation_log` DISABLE KEYS */;
+INSERT INTO `t_operation_log` VALUES (1,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 19:43:18'),(2,1,'ADMIN_CREATE','2','新增管理员',NULL,'2026-11-16 19:44:10'),(3,1,'ACTIVITY_CREATE','1','创建活动：test1',NULL,'2026-11-16 19:45:00'),(4,1,'ACTIVITY_PUBLISH','1','发布活动：test1',NULL,'2026-11-16 19:45:03'),(5,NULL,'ACTIVITY_STATUS_AUTO','1','状态自动流转：OPEN → FINISHED',NULL,'2026-11-16 19:45:03'),(6,1,'ACTIVITY_UPDATE','1','编辑活动：test1',NULL,'2026-11-16 19:45:30'),(7,NULL,'ACTIVITY_STATUS_AUTO','1','状态自动流转：FINISHED → ONGOING',NULL,'2026-11-16 19:45:38'),(8,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 19:50:00'),(9,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 19:50:00'),(10,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 19:50:56'),(11,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 19:50:56'),(12,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 20:45:53'),(13,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 20:46:10'),(14,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 20:47:27'),(15,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 20:48:16'),(16,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 20:48:55'),(17,1,'ACTIVITY_CREATE','2','创建活动：E2E-UI-自动化活动',NULL,'2026-11-16 20:49:09'),(18,1,'ACTIVITY_PUBLISH','2','发布活动：E2E-UI-自动化活动',NULL,'2026-11-16 20:49:12'),(19,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 20:49:36'),(20,1,'ACTIVITY_CREATE','3','创建活动：E2E-UI-自动化活动',NULL,'2026-11-16 20:49:50'),(21,1,'ACTIVITY_PUBLISH','3','发布活动：E2E-UI-自动化活动',NULL,'2026-11-16 20:49:53'),(22,1,'ACTIVITY_CHECKIN_SWITCH','3','开启签到：E2E-UI-自动化活动',NULL,'2026-11-16 20:50:10'),(23,1,'ACTIVITY_UPDATE','3','编辑活动：E2E-UI-自动化活动',NULL,'2026-11-16 20:50:10'),(24,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 20:51:51'),(25,1,'ACTIVITY_CREATE','4','创建活动：E2E-UI-自动化活动',NULL,'2026-11-16 20:52:05'),(26,1,'ACTIVITY_PUBLISH','4','发布活动：E2E-UI-自动化活动',NULL,'2026-11-16 20:52:08'),(27,1,'ACTIVITY_CHECKIN_SWITCH','4','开启签到：E2E-UI-自动化活动',NULL,'2026-11-16 20:52:24'),(28,1,'ACTIVITY_UPDATE','4','编辑活动：E2E-UI-自动化活动',NULL,'2026-11-16 20:52:25'),(29,1,'LOGIN','1','登录成功','127.0.0.1','2026-11-16 21:23:43'),(30,1,'LOGIN','1','登录成功','127.0.0.1','2026-11-16 21:23:43'),(31,1,'LOGIN','1','登录成功','127.0.0.1','2026-11-16 21:23:53'),(32,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 21:23:57'),(33,1,'LOGIN','1','登录成功','0:0:0:0:0:0:0:1','2026-11-16 21:29:26'),(34,1,'LOGIN','1','登录成功','127.0.0.1','2026-11-16 21:32:59'),(35,1,'LOGIN','1','登录成功','127.0.0.1','2026-11-16 21:33:26'),(36,1,'LOGIN','1','登录成功','127.0.0.1','2026-11-16 21:40:00'),(37,1,'LOGIN','1','登录成功','127.0.0.1','2026-11-16 21:41:02');
 /*!40000 ALTER TABLE `t_operation_log` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -266,7 +271,7 @@ CREATE TABLE `t_registration` (
   UNIQUE KEY `uk_activity_phone` (`activity_id`,`phone`) COMMENT '防止同一人重复报名',
   KEY `idx_reg_activity` (`activity_id`),
   KEY `idx_reg_college` (`college_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='报名记录表';
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='报名记录表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -275,6 +280,7 @@ CREATE TABLE `t_registration` (
 
 LOCK TABLES `t_registration` WRITE;
 /*!40000 ALTER TABLE `t_registration` DISABLE KEYS */;
+INSERT INTO `t_registration` VALUES (2,4,'张三丰','13900001234','ART','SCAN','2026-11-16 20:52:17','VALID',0);
 /*!40000 ALTER TABLE `t_registration` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -287,4 +293,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-11-16  0:00:12
+-- Dump completed on 2026-11-16 21:53:55
