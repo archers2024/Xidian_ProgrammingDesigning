@@ -1,0 +1,583 @@
+{
+  "tag": "ROUND2_1794846499449",
+  "time": "2026-11-16T16:28:20.615Z",
+  "summary": {
+    "total": 65,
+    "passed": 65,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "路径鉴权 /admin;probe/activity/list",
+      "pass": true,
+      "evidence": {
+        "http": 401,
+        "code": 40002,
+        "message": "未登录或登录已过期"
+      }
+    },
+    {
+      "name": "路径鉴权 /%61dmin/activity/list",
+      "pass": true,
+      "evidence": {
+        "http": 401,
+        "code": 40002,
+        "message": "未登录或登录已过期"
+      }
+    },
+    {
+      "name": "路径鉴权 /super;probe/admin/accounts",
+      "pass": true,
+      "evidence": {
+        "http": 401,
+        "code": 40002,
+        "message": "未登录或登录已过期"
+      }
+    },
+    {
+      "name": "路径鉴权 /file;probe/upload",
+      "pass": true,
+      "evidence": {
+        "http": 401,
+        "code": 40002,
+        "message": "未登录或登录已过期"
+      }
+    },
+    {
+      "name": "路径鉴权 /checkin;probe/qrcode/1",
+      "pass": true,
+      "evidence": {
+        "http": 401,
+        "code": 40002,
+        "message": "未登录或登录已过期"
+      }
+    },
+    {
+      "name": "账号输入校验 {}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "账号需为 3 至 50 位字母数字或下划线"
+      }
+    },
+    {
+      "name": "账号输入校验 {\"username\":\"x\",\"realName\":\"测试\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "账号需为 3 至 50 位字母数字或下划线"
+      }
+    },
+    {
+      "name": "账号输入校验 {\"username\":\"ROUND2_1794846499449\",\"realName\":\"测试\",\"roleCode\":\"ROOT\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "管理员角色不正确"
+      }
+    },
+    {
+      "name": "账号输入校验 {\"username\":\"ROUND2_1794846499449\",\"realName\":\"测试\",\"passwordHash\":\"short\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "密码至少 8 位且包含字母和数字"
+      }
+    },
+    {
+      "name": "最后超管不能停用",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "不能停用最后一个超级管理员"
+      }
+    },
+    {
+      "name": "状态取值校验",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "账号状态必须为 0 或 1"
+      }
+    },
+    {
+      "name": "创建第二轮测试账号",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "普通账号不能查看原手机号",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002,
+        "message": "无权访问该组织的活动"
+      }
+    },
+    {
+      "name": "普通账号正确输入原密码才可修改",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "原密码不正确"
+      }
+    },
+    {
+      "name": "新密码策略",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "密码至少 8 位且包含字母和数字"
+      }
+    },
+    {
+      "name": "修改自身密码",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "修改密码撤销旧令牌",
+      "pass": true,
+      "evidence": {
+        "http": 401,
+        "code": 40002,
+        "message": "账号状态或登录信息已变更，请重新登录"
+      }
+    },
+    {
+      "name": "退出登录",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "退出撤销令牌",
+      "pass": true,
+      "evidence": {
+        "http": 401,
+        "code": 40002,
+        "message": "账号状态或登录信息已变更，请重新登录"
+      }
+    },
+    {
+      "name": "重置二轮账号密码",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "临时密码不能访问活动",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002,
+        "message": "请先修改临时密码"
+      }
+    },
+    {
+      "name": "临时密码可修改",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "修改临时密码后恢复访问",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "分页与日期边界 size=-1",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "分页参数超出范围，每页 1 至 100 条"
+      }
+    },
+    {
+      "name": "分页与日期边界 size=100000",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "分页参数超出范围，每页 1 至 100 条"
+      }
+    },
+    {
+      "name": "分页与日期边界 current=0",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "分页参数超出范围，每页 1 至 100 条"
+      }
+    },
+    {
+      "name": "分页与日期边界 from=bad",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "请求参数缺失或格式不正确"
+      }
+    },
+    {
+      "name": "统计天数边界 0",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "统计天数需在 1 至 366 之间"
+      }
+    },
+    {
+      "name": "统计天数边界 -1",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "统计天数需在 1 至 366 之间"
+      }
+    },
+    {
+      "name": "统计天数边界 367",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "统计天数需在 1 至 366 之间"
+      }
+    },
+    {
+      "name": "活动边界 {\"typeCode\":\"INVALID\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "请选择正确的活动类型"
+      }
+    },
+    {
+      "name": "活动边界 {\"location\":\"\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "请填写有效的活动地点"
+      }
+    },
+    {
+      "name": "活动边界 {\"title\":123}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "请求参数缺失或格式不正确"
+      }
+    },
+    {
+      "name": "活动边界 {\"quota\":1.5}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "请求参数缺失或格式不正确"
+      }
+    },
+    {
+      "name": "活动边界 {\"checkinRadius\":-1}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "签到半径需在 50 至 5000 米之间"
+      }
+    },
+    {
+      "name": "活动边界 {\"lngLat\":\"NaN,0\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "地点坐标格式不正确"
+      }
+    },
+    {
+      "name": "活动边界 {\"lngLat\":\"Infinity,0\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "地点坐标格式不正确"
+      }
+    },
+    {
+      "name": "活动边界 {\"lngLat\":\"181,0\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "地点坐标格式不正确"
+      }
+    },
+    {
+      "name": "活动边界 {\"lngLat\":\"0,91\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "地点坐标格式不正确"
+      }
+    },
+    {
+      "name": "活动边界 {\"lngLat\":\"1,\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "地点坐标格式不正确"
+      }
+    },
+    {
+      "name": "活动边界 {\"lngLat\":\"1,2,3\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "地点坐标格式不正确"
+      }
+    },
+    {
+      "name": "活动边界 {\"startTime\":\"2027-02-30 12:00:00\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "请求参数缺失或格式不正确"
+      }
+    },
+    {
+      "name": "活动边界 {\"endTime\":\"2026-11-17T01:28:20\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "活动开始时间必须早于结束时间"
+      }
+    },
+    {
+      "name": "未开始活动不能开启签到",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "只有进行中的活动可开启签到"
+      }
+    },
+    {
+      "name": "二轮报名 1",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "二轮报名 2",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "二轮报名 3",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "二轮开启签到",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "准确签到边界 {\"lngLat\":\"\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "准确签到需要有效定位和设备标识"
+      }
+    },
+    {
+      "name": "准确签到边界 {\"device\":\"\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "准确签到需要有效定位和设备标识"
+      }
+    },
+    {
+      "name": "准确签到边界 {\"lngLat\":\"NaN,34.2\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "准确签到需要有效定位和设备标识"
+      }
+    },
+    {
+      "name": "准确签到边界 {\"lngLat\":\"181,34.2\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "准确签到需要有效定位和设备标识"
+      }
+    },
+    {
+      "name": "准确签到边界 {\"code\":\"expired-code\"}",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "二维码已失效，请重新扫码"
+      }
+    },
+    {
+      "name": "并发相同设备仅一次成功",
+      "pass": true,
+      "evidence": {
+        "codes": [
+          40001,
+          0
+        ]
+      }
+    },
+    {
+      "name": "并发同一报名仅一次成功",
+      "pass": true,
+      "evidence": {
+        "codes": [
+          40001,
+          0,
+          40001
+        ]
+      }
+    },
+    {
+      "name": "活动结束动态码不可读",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "当前未开放签到"
+      }
+    },
+    {
+      "name": "活动结束签到拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "当前不在签到时间范围内"
+      }
+    },
+    {
+      "name": "统计分类总报名可对账",
+      "pass": true,
+      "evidence": {
+        "total": 4
+      }
+    },
+    {
+      "name": "统计分类总签到可对账",
+      "pass": true,
+      "evidence": {
+        "total": 2
+      }
+    },
+    {
+      "name": "拒绝非法文件 probe.exe",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001
+      }
+    },
+    {
+      "name": "拒绝非法文件 probe.pdf",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001
+      }
+    },
+    {
+      "name": "拒绝非法文件 spoof.jpg",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001
+      }
+    },
+    {
+      "name": "二轮合法文件上传",
+      "pass": true,
+      "evidence": {
+        "code": 0
+      }
+    },
+    {
+      "name": "上传返回资源可读取",
+      "pass": true,
+      "evidence": {
+        "http": 200
+      }
+    },
+    {
+      "name": "新旧账号均不返回密码散列",
+      "pass": true
+    }
+  ]
+}

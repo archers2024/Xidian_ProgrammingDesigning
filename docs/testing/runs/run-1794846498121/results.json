@@ -1,0 +1,558 @@
+{
+  "tag": "AUDIT_1794846498295",
+  "base": "http://127.0.0.1:59601",
+  "time": "2026-11-16T16:28:19.301Z",
+  "fixtureIds": [
+    34
+  ],
+  "fixtureAdminId": 13,
+  "summary": {
+    "total": 60,
+    "passed": 60,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "匿名后台访问被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 401,
+        "code": 40002,
+        "message": "未登录或登录已过期"
+      }
+    },
+    {
+      "name": "伪造token被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 401,
+        "code": 40002,
+        "message": "未登录或登录已过期"
+      }
+    },
+    {
+      "name": "缺少登录参数被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "请输入账号和密码"
+      }
+    },
+    {
+      "name": "超级管理员登录",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "当前账号",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "活动类型字典",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "学院字典",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "账号列表不返回密码hash",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "默认密码新建管理员",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "显式密码新建管理员",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "普通管理员禁止账号管理",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002,
+        "message": "无权限访问"
+      }
+    },
+    {
+      "name": "重置密码",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "重置后的随机临时密码可登录",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "停用测试账号",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "停用账号不能重新登录",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "账号已停用，请联系超级管理员"
+      }
+    },
+    {
+      "name": "停用后旧token失效",
+      "pass": true,
+      "evidence": {
+        "http": 401,
+        "code": 40002,
+        "message": "账号状态或登录信息已变更，请重新登录"
+      }
+    },
+    {
+      "name": "空活动参数被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "请选择正确的活动类型"
+      }
+    },
+    {
+      "name": "人数为0被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "人数上限需在 1 ~ 5000 之间"
+      }
+    },
+    {
+      "name": "截止时间晚于开始被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "报名截止时间必须早于活动开始时间"
+      }
+    },
+    {
+      "name": "创建活动",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "草稿宣传内容不可公开读取",
+      "pass": true,
+      "evidence": {
+        "http": 404,
+        "code": 40003,
+        "message": "活动尚未发布或已取消"
+      }
+    },
+    {
+      "name": "发布活动",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "重复发布被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "活动已发布，请勿重复操作"
+      }
+    },
+    {
+      "name": "公开宣传接口不泄露签到密钥",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "活动列表",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "报名二维码",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "签到配置",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "保存相同附件",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "重复保存不增加附件",
+      "pass": true,
+      "evidence": {
+        "count": 1
+      }
+    },
+    {
+      "name": "清空附件有效",
+      "pass": true,
+      "evidence": {
+        "count": 0
+      }
+    },
+    {
+      "name": "错误手机号被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "请输入正确的手机号"
+      }
+    },
+    {
+      "name": "错误学院被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "请选择正确的学院"
+      }
+    },
+    {
+      "name": "正常报名",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "重复报名被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "该手机号已报名，请勿重复提交"
+      }
+    },
+    {
+      "name": "并发报名仅剩余1个名额成功",
+      "pass": true,
+      "evidence": {
+        "codes": [
+          0,
+          40001,
+          40001
+        ],
+        "messages": [
+          "success",
+          "活动名额已满，报名失败",
+          "活动名额已满，报名失败"
+        ]
+      }
+    },
+    {
+      "name": "报名名单手机号脱敏",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "满额报名被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "活动名额已满，报名失败"
+      }
+    },
+    {
+      "name": "签到默认被关闭",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "该活动未开启签到"
+      }
+    },
+    {
+      "name": "通过接口调整活动为进行中",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "能够通过接口开启签到",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "匿名不可获取动态码",
+      "pass": true,
+      "evidence": {
+        "http": 401,
+        "code": 40002,
+        "message": "未登录或登录已过期"
+      }
+    },
+    {
+      "name": "登录获取动态码",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "错误动态码被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "二维码已失效，请重新扫码"
+      }
+    },
+    {
+      "name": "远离会场签到被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "超出签到范围（当前距离约 11735477 米），请到会场签到"
+      }
+    },
+    {
+      "name": "准确签到缺少定位与设备应拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "准确签到需要有效定位和设备标识"
+      }
+    },
+    {
+      "name": "正常准确签到",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "重复签到被拒绝",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "您已于 2026-11-17T00:28:19 签到，请勿重复签到"
+      }
+    },
+    {
+      "name": "基本签到",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "签到记录",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "Excel导出 registrations/export",
+      "pass": true,
+      "evidence": {
+        "status": 200,
+        "bytes": 3658
+      }
+    },
+    {
+      "name": "Excel导出 checkins/export",
+      "pass": true,
+      "evidence": {
+        "status": 200,
+        "bytes": 3632
+      }
+    },
+    {
+      "name": "统计报表",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "缺少签到参数应返回参数错误",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "请求参数缺失或格式不正确"
+      }
+    },
+    {
+      "name": "错误日期应返回参数错误",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 40001,
+        "message": "请求参数缺失或格式不正确"
+      }
+    },
+    {
+      "name": "未登录禁止上传",
+      "pass": true,
+      "evidence": {
+        "http": 401,
+        "code": 40002,
+        "message": "未登录或登录已过期"
+      }
+    },
+    {
+      "name": "已登录上传合法PDF成功",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "删除活动",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success"
+      }
+    },
+    {
+      "name": "删除后详情不可访问",
+      "pass": true,
+      "evidence": {
+        "http": 404,
+        "code": 40003,
+        "message": "活动不存在"
+      }
+    },
+    {
+      "name": "删除后宣传不可访问",
+      "pass": true,
+      "evidence": {
+        "http": 404,
+        "code": 40003,
+        "message": "活动不存在或链接已失效"
+      }
+    },
+    {
+      "name": "删除后统计口径一致",
+      "pass": true,
+      "evidence": {
+        "beforeSignup": 3,
+        "afterSignup": 1,
+        "beforeActivity": 2,
+        "afterActivity": 1
+      }
+    }
+  ]
+}

@@ -1,8 +1,6 @@
 package com.campus.activity.security;
 
 import com.campus.activity.common.R;
-import com.campus.activity.module.system.entity.Admin;
-import com.campus.activity.module.system.mapper.AdminMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,18 +20,29 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class LoginInterceptor implements HandlerInterceptor {
 
     private final JwtUtil jwtUtil;
-    private final AdminMapper adminMapper;
+    private final com.campus.activity.module.system.mapper.OrganizationMapper organizations;
+    private final com.campus.activity.module.activity.mapper.ActivityMapper activities;
+    private final com.campus.activity.module.system.mapper.AdminMapper adminMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public LoginInterceptor(JwtUtil jwtUtil, AdminMapper adminMapper) {
+    public LoginInterceptor(JwtUtil jwtUtil, com.campus.activity.module.system.mapper.AdminMapper adminMapper, com.campus.activity.module.system.mapper.OrganizationMapper organizations, com.campus.activity.module.activity.mapper.ActivityMapper activities) {
         this.jwtUtil = jwtUtil;
         this.adminMapper = adminMapper;
+        this.organizations=organizations;this.activities=activities;
     }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        AdminContext.clear();
+        if (org.springframework.web.cors.CorsUtils.isPreFlightRequest(request)) return true;
         String uri = normalizePath(request);
-        boolean needLogin = uri.startsWith("/admin/") || uri.startsWith("/super/") || uri.startsWith("/file/");
+        boolean operationsEndpoint = (uri.equals("/actuator") || uri.startsWith("/actuator/"))
+                && !uri.equals("/actuator/health") && !uri.startsWith("/actuator/health/");
+        Object matched = request.getAttribute(org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
+        if (matched instanceof String pattern) uri = pattern;
+        boolean needLogin = operationsEndpoint || uri.startsWith("/admin/") || uri.startsWith("/super/")
+                || (uri.startsWith("/file-assets/")&&!uri.startsWith("/file-assets/public/")) || uri.startsWith("/file/") || uri.startsWith("/actuator/prometheus") || uri.startsWith("/checkin/qrcode/") || uri.equals("/auth/logout");
         if (!needLogin) {
             return true;
         }
@@ -43,6 +52,14 @@ public class LoginInterceptor implements HandlerInterceptor {
             writeUnauthorized(response, "未登录或登录已过期");
             return false;
         }
+        if ((request.getHeader(HttpHeaders.AUTHORIZATION) == null || !request.getHeader(HttpHeaders.AUTHORIZATION).startsWith("Bearer ")) && !java.util.Set.of("GET", "HEAD", "OPTIONS").contains(request.getMethod())) {
+            String csrf = null;
+            if (request.getCookies() != null) for (var cookie : request.getCookies()) if ("CAMPUS_CSRF".equals(cookie.getName())) csrf = cookie.getValue();
+            if (csrf == null || !java.security.MessageDigest.isEqual(csrf.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    request.getHeader("X-CSRF-Token") == null ? new byte[0] : request.getHeader("X-CSRF-Token").getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+                response.sendError(403, "CSRF validation failed"); return false;
+            }
+        }
         Claims claims;
         try {
             claims = jwtUtil.parse(token);
@@ -51,36 +68,49 @@ public class LoginInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        Long adminId;
         try {
-            adminId = Long.valueOf(String.valueOf(claims.get("adminId")));
-        } catch (Exception e) {
-            writeUnauthorized(response, "未登录或登录已过期");
+            Long adminId = Long.valueOf(String.valueOf(claims.get("adminId")));
+            var admin = adminMapper.selectById(adminId);
+            if (admin == null || !Integer.valueOf(1).equals(admin.getStatus())
+                    || !admin.getTokenVersion().equals(Long.valueOf(String.valueOf(claims.get("tokenVersion"))))) {
+                writeUnauthorized(response, "账号状态或登录信息已变更，请重新登录");
+                return false;
+            }
+            var org=organizations.selectById(admin.getOrgId());
+            if(!"SUPER".equals(admin.getRoleCode())&&(org==null||!Integer.valueOf(1).equals(org.getStatus()))){writeUnauthorized(response,"所属组织已停用");return false;}
+            AdminContext.set(new AdminContext.CurrentAdmin(adminId, admin.getUsername(), admin.getRoleCode(),admin.getOrgId()));
+            if (admin.getMustChangePassword() && !uri.equals("/admin/current") && !uri.equals("/admin/password") && !uri.equals("/auth/logout")) {
+                AdminContext.clear();
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write(objectMapper.writeValueAsString(R.fail(40002, "请先修改临时密码")));
+                return false;
+            }
+        } catch (RuntimeException e) {
+            writeUnauthorized(response, "登录信息无效，请重新登录");
             return false;
         }
 
-        // 每次请求回查账号：停用立即生效，角色以库中当前值为准，不信任令牌里的旧角色
-        Admin admin = adminMapper.selectById(adminId);
-        if (admin == null || admin.getStatus() == null || admin.getStatus() != 1) {
-            writeUnauthorized(response, "账号已停用，请联系超级管理员");
-            return false;
-        }
-        Object tvClaim = claims.get("tv");
-        int tokenVersion = tvClaim == null ? 0 : Integer.parseInt(String.valueOf(tvClaim));
-        int currentVersion = admin.getTokenVersion() == null ? 0 : admin.getTokenVersion();
-        if (tokenVersion != currentVersion) {
-            writeUnauthorized(response, "登录状态已失效，请重新登录");
-            return false;
-        }
-
-        AdminContext.set(new AdminContext.CurrentAdmin(adminId, admin.getUsername(), admin.getRoleCode()));
-
-        if (uri.startsWith("/super/") && !AdminContext.get().isSuper()) {
+        if ((uri.startsWith("/super/") || operationsEndpoint) && !AdminContext.get().isSuper()) {
+            AdminContext.clear();
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
             response.getWriter().write(objectMapper.writeValueAsString(R.fail(40002, "无权限访问")));
             return false;
+        }
+        if(!AdminContext.get().isSuper() && (uri.startsWith("/admin/activity/") || uri.startsWith("/checkin/qrcode/"))) {
+            Object vars=request.getAttribute(org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+            if(vars instanceof java.util.Map<?,?> values){
+                Object id=values.containsKey("id")?values.get("id"):values.get("activityId");
+                if(id!=null){
+                    var activity=activities.selectById(Long.valueOf(String.valueOf(id)));
+                    if(activity==null||!AdminContext.get().getOrgId().equals(activity.getOrgId())){
+                        AdminContext.clear();response.setStatus(403);response.setContentType("application/json;charset=UTF-8");response.getWriter().write(objectMapper.writeValueAsString(R.fail(40002,"无权访问该组织的活动")));return false;
+                    }
+                }
+            }
         }
         return true;
     }
@@ -113,7 +143,10 @@ public class LoginInterceptor implements HandlerInterceptor {
         if (header != null && header.startsWith("Bearer ")) {
             return header.substring(7);
         }
-        return request.getParameter("token");
+        if (request.getCookies() != null) for (var cookie : request.getCookies()) {
+            if ("CAMPUS_SESSION".equals(cookie.getName())) return cookie.getValue();
+        }
+        return null;
     }
 
     private void writeUnauthorized(HttpServletResponse response, String msg) throws Exception {

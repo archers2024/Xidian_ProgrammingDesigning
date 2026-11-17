@@ -16,6 +16,16 @@ public interface ActivityMapper extends BaseMapper<Activity> {
     @Select("SELECT * FROM t_activity WHERE activity_id = #{id} AND deleted = 0 FOR UPDATE")
     Activity selectForUpdate(@Param("id") Long id);
 
+    @Select("SELECT * FROM t_activity WHERE activity_id = #{id} AND deleted = 0 FOR SHARE")
+    Activity selectForShare(@Param("id") Long id);
+
+    @Update("UPDATE t_activity SET status = CASE WHEN end_time <= NOW() THEN 'FINISHED' " +
+            "WHEN start_time <= NOW() THEN 'ONGOING' WHEN signup_deadline <= NOW() THEN 'CLOSED' ELSE 'OPEN' END, " +
+            "update_time = NOW() WHERE deleted = 0 AND status IN ('OPEN','CLOSED','ONGOING') " +
+            "AND status <> CASE WHEN end_time <= NOW() THEN 'FINISHED' WHEN start_time <= NOW() THEN 'ONGOING' " +
+            "WHEN signup_deadline <= NOW() THEN 'CLOSED' ELSE 'OPEN' END")
+    int refreshStatuses();
+
     /**
      * 名额增减：与报名/取消在同一事务内完成，保证 signed_count 与实际一致（风险 R6）。
      */

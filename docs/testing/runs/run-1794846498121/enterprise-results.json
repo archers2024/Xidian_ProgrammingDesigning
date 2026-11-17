@@ -1,0 +1,260 @@
+{
+  "tag": "ENT_1794846506506",
+  "time": "2026-11-16T16:28:30.869Z",
+  "summary": {
+    "total": 56,
+    "passed": 56,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "就绪探针可用",
+      "pass": true
+    },
+    {
+      "name": "响应带追踪ID和禁止缓存",
+      "pass": true
+    },
+    {
+      "name": "匿名指标接口拒绝",
+      "pass": true
+    },
+    {
+      "name": "超管可读指标",
+      "pass": true
+    },
+    {
+      "name": "不存在接口正确404",
+      "pass": true
+    },
+    {
+      "name": "URL中的JWT不作为凭据",
+      "pass": true
+    },
+    {
+      "name": "预检来源策略 http://localhost:5173",
+      "pass": true
+    },
+    {
+      "name": "预检来源策略 https://untrusted.invalid",
+      "pass": true
+    },
+    {
+      "name": "审计故障导致账号写操作失败",
+      "pass": true
+    },
+    {
+      "name": "审计故障时密码更新被事务回滚",
+      "pass": true
+    },
+    {
+      "name": "会话Cookie设为HttpOnly",
+      "pass": true
+    },
+    {
+      "name": "Cookie会话可读取当前身份",
+      "pass": true
+    },
+    {
+      "name": "缺少CSRF令牌拒绝Cookie写操作",
+      "pass": true
+    },
+    {
+      "name": "错误授权头不能绕过CSRF",
+      "pass": true
+    },
+    {
+      "name": "正确CSRF到达业务校验",
+      "pass": true
+    },
+    {
+      "name": "临时密码随机且不使用固定值",
+      "pass": true
+    },
+    {
+      "name": "连续重置返回不同密码",
+      "pass": true
+    },
+    {
+      "name": "旧临时密码失效",
+      "pass": true
+    },
+    {
+      "name": "随机临时密码首次强制改密",
+      "pass": true
+    },
+    {
+      "name": "审计失败返回系统错误",
+      "pass": true
+    },
+    {
+      "name": "审计失败时密码更新回滚",
+      "pass": true
+    },
+    {
+      "name": "缺少编辑版本被拒",
+      "pass": true
+    },
+    {
+      "name": "匹配版本保存成功",
+      "pass": true
+    },
+    {
+      "name": "过期版本不会覆盖新版",
+      "pass": true
+    },
+    {
+      "name": "编辑冲突后内容保持新版",
+      "pass": true
+    },
+    {
+      "name": "并发幂等创建返回同一活动",
+      "pass": true,
+      "evidence": [
+        {
+          "http": 200,
+          "code": 0
+        },
+        {
+          "http": 200,
+          "code": 0
+        }
+      ]
+    },
+    {
+      "name": "幂等键不能复用到不同内容",
+      "pass": true
+    },
+    {
+      "name": "审批快照保留提交内容",
+      "pass": true
+    },
+    {
+      "name": "改稿不覆盖旧审批内容",
+      "pass": true
+    },
+    {
+      "name": "审批列表显示历史提交标题",
+      "pass": true
+    },
+    {
+      "name": "私有文件上传成功",
+      "pass": true
+    },
+    {
+      "name": "私有文件匿名不能下载",
+      "pass": true
+    },
+    {
+      "name": "私有文件同组织可下载",
+      "pass": true
+    },
+    {
+      "name": "私有文件不能通过public别名下载",
+      "pass": true
+    },
+    {
+      "name": "公开文件可匿名下载",
+      "pass": true
+    },
+    {
+      "name": "存储路径不能绕过文件权限",
+      "pass": true
+    },
+    {
+      "name": "配额内上传成功",
+      "pass": true
+    },
+    {
+      "name": "组织累计配额生效",
+      "pass": true
+    },
+    {
+      "name": "小连接池下十路幂等报名不会自锁",
+      "pass": true,
+      "evidence": {
+        "fulfilled": 10,
+        "codes": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "name": "十路并发报名落库和计数一致",
+      "pass": true
+    },
+    {
+      "name": "身份策略拒绝未验证报名",
+      "pass": true
+    },
+    {
+      "name": "身份策略拒绝伪造凭据",
+      "pass": true
+    },
+    {
+      "name": "身份策略拒绝其他手机号凭据",
+      "pass": true
+    },
+    {
+      "name": "身份策略拒绝过期凭据",
+      "pass": true
+    },
+    {
+      "name": "身份策略接受受信网关签发的测试凭据",
+      "pass": true
+    },
+    {
+      "name": "身份策略拒绝匿名代签",
+      "pass": true
+    },
+    {
+      "name": "身份策略允许验证后签到",
+      "pass": true
+    },
+    {
+      "name": "严格模式不会降级为基本签到",
+      "pass": true
+    },
+    {
+      "name": "分页名单返回页结构且受上限约束",
+      "pass": true
+    },
+    {
+      "name": "签到汇总只返回计数",
+      "pass": true
+    },
+    {
+      "name": "账号与组织支持分页",
+      "pass": true
+    },
+    {
+      "name": "鉴权下载可导出Excel",
+      "pass": true
+    },
+    {
+      "name": "未引用文件可受控清理",
+      "pass": true
+    },
+    {
+      "name": "审批快照仍引用的文件不会被清理",
+      "pass": true
+    },
+    {
+      "name": "清理后文件不再可读",
+      "pass": true
+    },
+    {
+      "name": "认证失败有审计记录",
+      "pass": true
+    }
+  ]
+}

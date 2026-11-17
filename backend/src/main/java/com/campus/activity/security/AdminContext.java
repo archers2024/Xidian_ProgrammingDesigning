@@ -28,16 +28,19 @@ public class AdminContext {
         private final Long adminId;
         private final String username;
         private final String roleCode;
+        private final Long orgId;
 
-        public CurrentAdmin(Long adminId, String username, String roleCode) {
+        public CurrentAdmin(Long adminId, String username, String roleCode, Long orgId) {
             this.adminId = adminId;
             this.username = username;
             this.roleCode = roleCode;
+            this.orgId = orgId;
         }
 
         public Long getAdminId() {
             return adminId;
         }
+        public Long getOrgId(){return orgId;}
 
         public String getUsername() {
             return username;

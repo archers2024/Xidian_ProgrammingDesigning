@@ -10,9 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.File;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +27,9 @@ public class FileController {
     private static final Logger log = LoggerFactory.getLogger(FileController.class);
 
 
+    private final com.campus.activity.module.system.service.FileAssetService assets;
+    public FileController(com.campus.activity.module.system.service.FileAssetService assets){this.assets=assets;}
+
     private static final List<String> WHITE_EXT = List.of("jpg", "jpeg", "png", "gif", "pdf", "doc", "docx", "ppt", "pptx");
 
     @Value("${campus.file.upload-dir}")
@@ -38,7 +39,7 @@ public class FileController {
     private String urlPrefix;
 
     @PostMapping("/file/upload")
-    public R<Map<String, String>> upload(@RequestParam("file") MultipartFile file) {
+    public R<Map<String, String>> upload(@RequestParam("file") MultipartFile file,@RequestParam(defaultValue="PRIVATE")String visibility,@RequestParam(required=false)Long orgId) {
         if (file.isEmpty()) {
             return R.business("文件为空");
         }
@@ -51,28 +52,45 @@ public class FileController {
             return R.business("文件大小不能超过 20MB");
         }
         try {
-            // 统一以绝对路径为基准：先规范化上传根目录，再在此之上解析日期子目录与目标文件，
-            // 避免「创建目录用相对路径、transferTo 交给容器解析」两套基准不一致导致 FileNotFoundException。
-            Path root = Paths.get(uploadDir).toAbsolutePath().normalize();
-            Path dir = root.resolve(LocalDate.now().toString()).normalize();
-            if (!dir.startsWith(root)) {
-                return R.business("上传目录配置非法");
+            try (var input = file.getInputStream()) {
+                byte[] header = input.readNBytes(8);
+                String magic = new String(header, java.nio.charset.StandardCharsets.ISO_8859_1);
+                boolean valid = switch (ext) {
+                    case "pdf" -> magic.startsWith("%PDF-");
+                    case "png" -> header.length >= 8 && java.util.Arrays.equals(header, new byte[]{(byte)137,80,78,71,13,10,26,10});
+                    case "jpg", "jpeg" -> header.length >= 3 && (header[0]&255)==255 && (header[1]&255)==216 && (header[2]&255)==255;
+                    case "gif" -> magic.startsWith("GIF87a") || magic.startsWith("GIF89a");
+                    case "docx", "pptx" -> magic.startsWith("PK") && validOffice(file, ext);
+                    default -> header.length >= 4 && (header[0]&255)==208 && (header[1]&255)==207 && (header[2]&255)==17 && (header[3]&255)==224;
+                };
+                if (!valid) return R.business("文件内容与扩展名不符");
             }
-            Files.createDirectories(dir);
-            String name = UUID.randomUUID() + "." + ext;
-            Path dest = dir.resolve(name).normalize();
-            if (!dest.startsWith(root)) {
-                return R.business("上传路径非法");
-            }
-            file.transferTo(dest);
-            Map<String, String> data = new HashMap<>();
-            data.put("url", urlPrefix + LocalDate.now() + "/" + name);
-            data.put("fileName", origin);
-            data.put("fileSize", String.valueOf(file.getSize()));
-            return R.ok(data);
+            return R.ok(assets.upload(file,ext,visibility,orgId));
+        } catch (com.campus.activity.common.BusinessException e) { throw e;
         } catch (Exception e) {
             log.error("上传失败", e);
             return R.business("上传失败，请稍后重试");
+        }
+    }
+
+    private boolean validOffice(MultipartFile file, String ext) throws java.io.IOException {
+        try (var zip = new java.util.zip.ZipInputStream(file.getInputStream())) {
+            boolean types = false, document = false;
+            long expanded = 0;
+            int entries = 0;
+            byte[] buffer = new byte[8192];
+            java.util.zip.ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                if (++entries > 1000) return false;
+                types |= "[Content_Types].xml".equals(entry.getName());
+                document |= ("docx".equals(ext) ? "word/document.xml" : "ppt/presentation.xml").equals(entry.getName());
+                int count;
+                while ((count = zip.read(buffer)) != -1) {
+                    expanded += count;
+                    if (expanded > 100L * 1024 * 1024) return false;
+                }
+            }
+            return types && document;
         }
     }
 }

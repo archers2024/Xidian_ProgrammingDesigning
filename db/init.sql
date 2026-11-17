@@ -7,18 +7,41 @@
 CREATE DATABASE IF NOT EXISTS campus_activity
   DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE campus_activity;
+-- Run only on a new, empty schema. Existing schemas must use versioned migrations.
+DELIMITER $$
+CREATE PROCEDURE campus_assert_empty()
+BEGIN
+ IF EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='t_activity') THEN
+  SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Existing activity schema: use versioned migrations, never reinitialize';
+ END IF;
+END$$
+DELIMITER ;
+CALL campus_assert_empty();
+DROP PROCEDURE campus_assert_empty;
+
+CREATE TABLE IF NOT EXISTS t_organization (
+ org_id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ code VARCHAR(40) NOT NULL UNIQUE,
+ name VARCHAR(100) NOT NULL,
+ status TINYINT NOT NULL DEFAULT 1,
+ require_review TINYINT NOT NULL DEFAULT 1,
+ create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+INSERT IGNORE INTO t_organization(org_id,code,name) VALUES(1,'DEFAULT','校级活动中心');
+UPDATE t_organization SET require_review=0 WHERE org_id=1;
 
 -- ---------------------------- 管理员（A岗） ----------------------------
-DROP TABLE IF EXISTS t_admin;
 CREATE TABLE t_admin (
   admin_id         BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
   username         VARCHAR(50)  NOT NULL COMMENT '登录账号',
+  org_id BIGINT NOT NULL DEFAULT 1,
   password_hash    VARCHAR(100) NOT NULL COMMENT 'BCrypt 密文，禁止明文',
+  token_version    BIGINT NOT NULL DEFAULT 0 COMMENT '令牌撤销版本',
+  must_change_password TINYINT NOT NULL DEFAULT 0 COMMENT '临时密码需要修改',
   real_name        VARCHAR(50)  NOT NULL COMMENT '姓名',
   dept             VARCHAR(100) DEFAULT NULL COMMENT '所属部门',
   role_code        VARCHAR(20)  NOT NULL DEFAULT 'ADMIN' COMMENT 'ADMIN/SUPER',
   status           TINYINT      NOT NULL DEFAULT 1 COMMENT '1启用 0停用',
-  token_version    INT          NOT NULL DEFAULT 0 COMMENT '令牌版本：停用/重置密码/改角色时自增，旧令牌即刻失效',
   last_login_time  DATETIME     DEFAULT NULL COMMENT '最近登录时间',
   create_time      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (admin_id),
@@ -26,7 +49,6 @@ CREATE TABLE t_admin (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='管理员表';
 
 -- -------------------- 活动类型字典（B岗） ------------------------------
-DROP TABLE IF EXISTS t_activity_type;
 CREATE TABLE t_activity_type (
   type_code   VARCHAR(20)  NOT NULL COMMENT '类型编码',
   type_name   VARCHAR(50)  NOT NULL COMMENT '类型名称',
@@ -36,10 +58,10 @@ CREATE TABLE t_activity_type (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='活动类型字典表（消除类型名称的传递依赖）';
 
 -- -------------------------- 活动（B岗） --------------------------------
-DROP TABLE IF EXISTS t_activity;
 CREATE TABLE t_activity (
   activity_id      BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
   activity_no      VARCHAR(32)  NOT NULL COMMENT '活动编号（业务可见）',
+  org_id BIGINT NOT NULL DEFAULT 1,
   signup_guid      VARCHAR(32)  NOT NULL COMMENT '报名条随机串，用于链接与二维码',
   title            VARCHAR(200) NOT NULL COMMENT '活动名称',
   type_code        VARCHAR(20)  NOT NULL COMMENT '活动类型，关联字典表',
@@ -52,6 +74,7 @@ CREATE TABLE t_activity (
   quota            INT          NOT NULL COMMENT '人数上限',
   signed_count     INT          NOT NULL DEFAULT 0 COMMENT '已报名人数（受控冗余，事务内维护）',
   status           VARCHAR(20)  NOT NULL DEFAULT 'DRAFT' COMMENT 'DRAFT/OPEN/CLOSED/ONGOING/FINISHED/CANCELED',
+  approval_status VARCHAR(20) NOT NULL DEFAULT 'NONE',
   checkin_enabled  TINYINT      NOT NULL DEFAULT 0 COMMENT '是否开启签到',
   checkin_secret   VARCHAR(64)  DEFAULT NULL COMMENT '动态签到码密钥',
   checkin_radius   INT          NOT NULL DEFAULT 500 COMMENT '签到允许半径（米）',
@@ -66,12 +89,12 @@ CREATE TABLE t_activity (
   UNIQUE KEY uk_activity_no (activity_no),
   UNIQUE KEY uk_signup_guid (signup_guid),
   KEY idx_activity_status (status),
+  KEY idx_activity_org (org_id,deleted,status),
   KEY idx_activity_type (type_code),
   KEY idx_activity_start (start_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='活动表';
 
 -- ------------------------ 活动附件（B岗） ------------------------------
-DROP TABLE IF EXISTS t_attachment;
 CREATE TABLE t_attachment (
   att_id       BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
   activity_id  BIGINT       NOT NULL COMMENT '活动ID',
@@ -85,7 +108,6 @@ CREATE TABLE t_attachment (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='活动附件表';
 
 -- --------------------- 学院字典（C岗） ---------------------------------
-DROP TABLE IF EXISTS t_college;
 CREATE TABLE t_college (
   college_code  VARCHAR(20) NOT NULL COMMENT '学院代码',
   college_name  VARCHAR(100) NOT NULL COMMENT '学院名称',
@@ -94,7 +116,6 @@ CREATE TABLE t_college (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学院字典表（消除学院名称的传递依赖）';
 
 -- ------------------------ 报名记录（C岗） ------------------------------
-DROP TABLE IF EXISTS t_registration;
 CREATE TABLE t_registration (
   reg_id          BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
   activity_id     BIGINT      NOT NULL COMMENT '活动ID',
@@ -112,7 +133,6 @@ CREATE TABLE t_registration (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='报名记录表';
 
 -- ------------------------ 签到记录（D岗） ------------------------------
-DROP TABLE IF EXISTS t_checkin;
 CREATE TABLE t_checkin (
   checkin_id           BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
   reg_id               BIGINT      NOT NULL COMMENT '对应报名记录',
@@ -128,7 +148,6 @@ CREATE TABLE t_checkin (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='签到记录表';
 
 -- ------------------------ 操作日志（A岗） ------------------------------
-DROP TABLE IF EXISTS t_operation_log;
 CREATE TABLE t_operation_log (
   log_id     BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
   admin_id   BIGINT      DEFAULT NULL COMMENT '操作人',
@@ -161,3 +180,16 @@ INSERT INTO t_college (college_code, college_name, sort_order) VALUES
 
 -- 默认超级管理员（admin / admin123）由后端 DataInitializer 在首次启动时
 -- 检测 t_admin 为空后自动创建，密码以 BCrypt 加盐写入，脚本内不含明文口令。
+CREATE TABLE IF NOT EXISTS t_activity_review (
+ review_id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ activity_id BIGINT NOT NULL,
+ org_id BIGINT NOT NULL,
+ submitted_by BIGINT NOT NULL,
+ reviewer_id BIGINT DEFAULT NULL,
+ decision VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+ comment VARCHAR(500) DEFAULT NULL,
+ submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ reviewed_at DATETIME DEFAULT NULL,
+ INDEX idx_review_queue(decision,org_id,submitted_at),
+ INDEX idx_review_activity(activity_id,review_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

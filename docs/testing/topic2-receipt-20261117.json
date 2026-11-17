@@ -1,0 +1,73 @@
+{
+  "time": "2026-11-16T16:31:23.983862+00:00",
+  "jarSha256": "e365ed990d34a69e1716cc28530dfc19f70e3ee347dec0d355d9e331145bc806",
+  "runtimePid": 32620,
+  "release": "C:\\Users\\33719\\Desktop\\Xidian_ProgrammingDesigning-main\\backend\\target\\release-1794846598597",
+  "verifiedManifestFiles": 71,
+  "apiSummaries": {
+    "enterprise-results.json": {
+      "total": 56,
+      "passed": 56,
+      "failed": 0
+    },
+    "platform-results.json": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0
+    },
+    "results.json": {
+      "total": 60,
+      "passed": 60,
+      "failed": 0
+    },
+    "review-results.json": {
+      "total": 27,
+      "passed": 27,
+      "failed": 0
+    },
+    "round2-results.json": {
+      "total": 65,
+      "passed": 65,
+      "failed": 0
+    },
+    "round3-results.json": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0
+    },
+    "structure-results.json": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0
+    },
+    "topic2-results.json": {
+      "total": 50,
+      "passed": 50,
+      "failed": 0
+    }
+  },
+  "apiPassed": 321,
+  "apiTotal": 321,
+  "unit": {
+    "passed": 48,
+    "total": 48
+  },
+  "frontendUnit": {
+    "passed": 5,
+    "total": 5
+  },
+  "browser": {
+    "passed": 4,
+    "total": 4,
+    "artifacts": "backend/target/e2e-1794846541666"
+  },
+  "productionDeployed": false,
+  "reason": "User has no server",
+  "changedSourceHashes": {
+    "backend\\src\\main\\java\\com\\campus\\activity\\module\\activity\\service\\ActivityService.java": "4831c66b90336ea6c865ee1932000f6523dbefb0d2beac6ba158e5acb02c7b9d",
+    "frontend\\src\\views\\activity\\ActivityEditView.vue": "606a9f4c97d69d0878eb3219070078538dfea2e5c84b9acae1ac5e6ec2324623",
+    "frontend\\src\\views\\activity\\ActivityListView.vue": "e7fbbf2f587cf655c4e5680bd39622154cc1a03647381da1d29a3ed1f59715a2",
+    "docs\\testing\\topic2.mjs": "479d20e69084364853fc3e4115099a2fa0ccee41ae3d3b5fddbd936b980d41ce",
+    "frontend\\tests\\e2e\\workspace.spec.js": "32860174cb56a4b16f329b8c4a3a98d41988ba6d0d01bd2f41cdce85b8c1c9d2"
+  }
+}

@@ -1,14 +1,23 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import ElementPlus from 'element-plus'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import {
+  ElAside, ElButton, ElCard, ElCheckbox, ElCol, ElContainer, ElDatePicker,
+  ElDescriptions, ElDescriptionsItem, ElDialog, ElForm, ElFormItem, ElHeader,
+  ElInput, ElInputNumber, ElLoading, ElMain, ElMenu, ElMenuItem, ElOption,
+  ElPagination, ElRadioButton, ElRadioGroup, ElRow, ElSelect, ElTable, ElTableColumn,
+  ElTag, ElUpload
+} from 'element-plus'
 import 'element-plus/dist/index.css'
 import App from './App.vue'
 import router from './router'
 import './styles/main.css'
 
-createApp(App)
+const app = createApp(App)
   .use(createPinia())
   .use(router)
-  .use(ElementPlus, { locale: zhCn })
-  .mount('#app')
+for (const component of [ElAside, ElButton, ElCard, ElCheckbox, ElCol, ElContainer,
+  ElDatePicker, ElDescriptions, ElDescriptionsItem, ElDialog, ElForm, ElFormItem,
+  ElHeader, ElInput, ElInputNumber, ElLoading, ElMain, ElMenu, ElMenuItem, ElOption,
+  ElPagination, ElRadioButton, ElRadioGroup, ElRow, ElSelect, ElTable, ElTableColumn,
+  ElTag, ElUpload]) { if (component === ElLoading) app.use(component); else app.component(component.name, component) }
+app.mount('#app')

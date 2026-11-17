@@ -18,8 +18,16 @@ import java.util.Map;
 @Component
 public class JwtUtil {
 
-    @Value("${campus.jwt.secret}")
+    @Value("${campus.jwt.secret:}")
     private String secret;
+
+    @Value("${campus.production:false}") private boolean production;
+
+    @jakarta.annotation.PostConstruct
+    public void initialize() {
+        if(production&&(secret==null||secret.getBytes(StandardCharsets.UTF_8).length<32))throw new IllegalStateException("Production JWT secret must contain at least 32 bytes");
+        if (secret == null || secret.isBlank()) secret = java.util.UUID.randomUUID().toString() + java.util.UUID.randomUUID();
+    }
 
     @Value("${campus.jwt.expire-hours}")
     private long expireHours;
@@ -28,13 +36,12 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String createToken(Long adminId, String username, String roleCode, Integer tokenVersion) {
+    public String createToken(Long adminId, String username, String roleCode, Long tokenVersion) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("adminId", adminId);
         claims.put("username", username);
         claims.put("roleCode", roleCode);
-        // 令牌版本：停用 / 重置密码 / 角色变更时自增，旧令牌随即失效
-        claims.put("tv", tokenVersion == null ? 0 : tokenVersion);
+        claims.put("tokenVersion", tokenVersion);
         Date now = new Date();
         return Jwts.builder()
                 .claims(claims)

@@ -1,13 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AdminLayout from '../layout/AdminLayout.vue'
+import {ensureSession} from '../api/session'
 
 const routes = [
+  {path:'/forbidden',component:()=>import('../views/system/ResultView.vue'),meta:{public:true,forbidden:true}},
+  {path:'/:pathMatch(.*)*',component:()=>import('../views/system/ResultView.vue'),meta:{public:true}},
   { path: '/login', name: 'login', component: () => import('../views/system/LoginView.vue') },
   {
     path: '/',
     component: AdminLayout,
-    redirect: '/activity',
+    redirect: '/dashboard',
     children: [
+      { path: 'dashboard', name: 'dashboard', component: () => import('../views/platform/DashboardView.vue') },
+      { path: 'platform/organizations', name: 'organizations', component: () => import('../views/platform/OrganizationView.vue') },
+      { path: 'platform/reviews', name: 'reviews', component: () => import('../views/platform/ReviewCenter.vue') },
+      { path: 'platform/audit', name: 'audit', component: () => import('../views/platform/AuditView.vue') },
       { path: 'activity', name: 'activityList', component: () => import('../views/activity/ActivityListView.vue') },
       { path: 'activity/create', name: 'activityCreate', component: () => import('../views/activity/ActivityEditView.vue') },
       { path: 'activity/:id/edit', name: 'activityEdit', component: () => import('../views/activity/ActivityEditView.vue') },
@@ -31,11 +38,12 @@ const router = createRouter({
 })
 
 // 后台路由守卫：未登录跳转登录页
-router.beforeEach((to) => {
-  const isAdminRoute = !to.path.startsWith('/m/') && to.path !== '/login'
-  if (isAdminRoute && !localStorage.getItem('token')) {
-    return { path: '/login' }
-  }
+router.beforeEach(async to=>{
+ const protectedRoute=(!to.path.startsWith('/m/')||to.path.startsWith('/m/board/'))&&to.path!=='/login'&&!to.meta.public
+ if(!protectedRoute)return
+ const profile=await ensureSession()
+ if(!profile)return{path:'/login',query:{redirect:to.fullPath}}
+ if((to.path.startsWith('/platform/organizations')||to.path.startsWith('/platform/audit')||to.path.startsWith('/system/accounts'))&&profile.roleCode!=='SUPER')return'/forbidden'
 })
-
+window.addEventListener('session-expired',()=>{const current=router.currentRoute.value;if(current.path!=='/login'&&(!current.path.startsWith('/m/')||current.path.startsWith('/m/board/')))router.replace({path:'/login',query:{redirect:current.fullPath}})})
 export default router

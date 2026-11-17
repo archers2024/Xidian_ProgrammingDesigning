@@ -9,7 +9,6 @@ import com.campus.activity.module.activity.service.ActivityService;
 import com.campus.activity.module.signup.entity.Registration;
 import com.campus.activity.module.signup.mapper.CollegeMapper;
 import com.campus.activity.module.signup.mapper.RegistrationMapper;
-import com.campus.activity.module.signup.vo.PublicActivityVO;
 import com.campus.activity.module.signup.vo.RegistrationVO;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * C岗：报名域（FR-06、FR-07、FR-10）。
@@ -35,34 +33,26 @@ public class SignupService {
     private final ActivityMapper activityMapper;
     private final RegistrationMapper registrationMapper;
     private final CollegeMapper collegeMapper;
-
-    @Value("${campus.signup.ip-limit-per-minute}")
-    private int ipLimitPerMinute;
+    private final com.campus.activity.security.IdentityVerifier identities;
 
     @Value("${campus.mobile.base-url}")
     private String mobileBaseUrl;
 
-    /** 简易 IP 限流（演示用内存实现，生产建议 Redis） */
-    private final Map<String, long[]> ipWindow = new ConcurrentHashMap<>();
+    private final com.campus.activity.security.OrganizationAccess access;
 
     /** ---------------- 宣传海报页（UI-08） ---------------- */
 
-    /**
-     * 宣传海报页（公开）。
-     * 只返回海报所需字段；草稿与已取消活动一律按「链接已失效」处理，避免未发布内容被匿名读取。
-     */
     public Map<String, Object> promo(String guid) {
         Activity a = activityService.byGuid(guid);
-        if ("DRAFT".equals(a.getStatus()) || "CANCELED".equals(a.getStatus())) {
-            throw new BusinessException(40003, "活动不存在或链接已失效");
-        }
+        if ("DRAFT".equals(a.getStatus()) || "CANCELED".equals(a.getStatus())) throw new BusinessException(40003, "活动尚未发布或已取消");
         Map<String, Object> data = new HashMap<>();
-        data.put("activity", PublicActivityVO.of(a));
+        data.put("activity", a);
         data.put("attachments", activityService.attachments(a.getActivityId()));
         // 时效性：仅报名时段内可报名，超时给前端友好提示（FR-04 可选项）
-        boolean signupOpen = "OPEN".equals(a.getStatus());
+        boolean full = a.getSignedCount() >= a.getQuota();
+        boolean signupOpen = "OPEN".equals(a.getStatus()) && !full;
         data.put("signupOpen", signupOpen);
-        data.put("signupTip", signupOpen ? "" : tipOf(a.getStatus()));
+        data.put("signupTip", signupOpen ? "" : full && "OPEN".equals(a.getStatus()) ? "活动名额已满" : tipOf(a.getStatus()));
         data.put("signupUrl", mobileBaseUrl + "/signup/" + guid);
         return data;
     }
@@ -82,16 +72,16 @@ public class SignupService {
 
     @Transactional
     public Registration signup(String guid, String name, String phone, String collegeCode,
-                               String channel, String ip) {
-        checkIpLimit(ip);
+                               String channel, String identityProof) {
         Activity a = activityService.byGuid(guid);
+        identities.verify(a.getCheckinPolicy(),phone,identityProof);
 
         // 1）活动是否失效
         if (!"OPEN".equals(a.getStatus())) {
             throw new BusinessException(tipOf(a.getStatus()));
         }
         // 2）报名时间（状态机已保证 OPEN 时未截止，这里再兜底一次）
-        if (LocalDateTime.now().isAfter(a.getSignupDeadline())) {
+        if (!LocalDateTime.now().isBefore(a.getSignupDeadline())) {
             throw new BusinessException("报名已于 " + a.getSignupDeadline() + " 截止");
         }
         // 3）个人信息格式
@@ -114,6 +104,9 @@ public class SignupService {
         }
         // 5）名额：事务内锁行判定，防超卖
         Activity locked = activityMapper.selectForUpdate(a.getActivityId());
+        activityService.refreshStatus(locked);
+        if (locked == null || Integer.valueOf(1).equals(locked.getDeleted()) || !"OPEN".equals(locked.getStatus())
+                || !LocalDateTime.now().isBefore(locked.getSignupDeadline())) throw new BusinessException("活动已关闭报名");
         if (locked.getSignedCount() >= locked.getQuota()) {
             throw new BusinessException("活动名额已满，报名失败");
         }
@@ -123,6 +116,7 @@ public class SignupService {
         r.setName(name.trim());
         r.setPhone(phone);
         r.setCollegeCode(collegeCode);
+        if (channel != null && !List.of("LINK", "SCAN").contains(channel)) throw new BusinessException("报名渠道不正确");
         r.setSourceChannel(channel == null ? "LINK" : channel);
         r.setSignupTime(LocalDateTime.now());
         r.setStatus("VALID");
@@ -131,32 +125,32 @@ public class SignupService {
         return r;
     }
 
-    private void checkIpLimit(String ip) {
-        if (ip == null) {
-            return;
-        }
-        long minute = System.currentTimeMillis() / 60000;
-        long[] w = ipWindow.get(ip);
-        if (w == null || w[0] != minute) {
-            ipWindow.put(ip, new long[]{minute, 1});
-            return;
-        }
-        w[1]++;
-        if (w[1] > ipLimitPerMinute) {
-            throw new BusinessException("操作过于频繁，请稍后再试");
-        }
+    private void requireActivityScope(Long id) {
+        Activity activity=activityMapper.selectById(id);
+        if(activity==null)throw new BusinessException(40003,"活动不存在");
+        access.requireScope(activity.getOrgId());
     }
 
     /** ---------------- 名单管理（FR-10） ---------------- */
 
+    public com.baomidou.mybatisplus.core.metadata.IPage<RegistrationVO> page(Long id,boolean mask,long current,long size) {
+        requireActivityScope(id);if(!mask)access.requireSuper();
+        if(current<1||size<1||size>100)throw new BusinessException("分页范围不正确");
+        var page=registrationMapper.pageWithCheckin(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(current,size),id);
+        page.getRecords().forEach(v->{v.setPhoneMasked(mask?mask(v.getPhone()):v.getPhone());if(mask)v.setPhone(mask(v.getPhone()));});return page;
+    }
+    public void streamRows(Long id,boolean mask,java.util.function.Consumer<List<String>> sink) {
+        requireActivityScope(id);if(!mask)access.requireSuper();
+        registrationMapper.stream(id,ctx->{var v=ctx.getResultObject();sink.accept(java.util.Arrays.asList(v.getName(),mask?mask(v.getPhone()):v.getPhone(),v.getCollegeName(),String.valueOf(v.getSignupTime()),v.getCheckinTime()==null?"未签到":String.valueOf(v.getCheckinTime()),v.getCheckinMethod()==null?"-":v.getCheckinMethod()));});
+    }
     public List<RegistrationVO> registrations(Long activityId, boolean maskPhone) {
+        requireActivityScope(activityId);
+        if(!maskPhone)access.requireSuper();
         List<RegistrationVO> list = registrationMapper.listWithCheckin(activityId);
-        for (RegistrationVO v : list) {
-            v.setPhoneMasked(mask(v.getPhone()));
-            if (maskPhone) {
-                // 默认响应彻底移除原始号码，而不是在返回脱敏字段的同时又带上 phone
-                v.setPhone(null);
-            }
+        if (maskPhone) {
+            list.forEach(v -> { v.setPhoneMasked(mask(v.getPhone())); v.setPhone(mask(v.getPhone())); });
+        } else {
+            list.forEach(v -> v.setPhoneMasked(v.getPhone()));
         }
         return list;
     }
@@ -175,7 +169,7 @@ public class SignupService {
         for (RegistrationVO v : list) {
             List<String> row = new ArrayList<>();
             row.add(v.getName());
-            row.add(maskPhone || v.getPhone() == null ? v.getPhoneMasked() : v.getPhone());
+            row.add(v.getPhoneMasked());
             row.add(v.getCollegeName());
             row.add(String.valueOf(v.getSignupTime()));
             row.add(v.getCheckinTime() == null ? "未签到" : String.valueOf(v.getCheckinTime()));
@@ -196,10 +190,11 @@ public class SignupService {
         return activityService.attachments(activityId);
     }
 
-    public SignupService(ActivityService activityService, ActivityMapper activityMapper, RegistrationMapper registrationMapper, CollegeMapper collegeMapper) {
+    public SignupService(ActivityService activityService, ActivityMapper activityMapper, RegistrationMapper registrationMapper, CollegeMapper collegeMapper, com.campus.activity.security.OrganizationAccess access, com.campus.activity.security.IdentityVerifier identities) {
         this.activityService = activityService;
         this.activityMapper = activityMapper;
         this.registrationMapper = registrationMapper;
         this.collegeMapper = collegeMapper;
+        this.access=access; this.identities=identities;
     }
 }

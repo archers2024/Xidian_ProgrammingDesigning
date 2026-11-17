@@ -1,19 +1,18 @@
 package com.campus.activity.module.activity.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.campus.activity.common.BusinessException;
 import com.campus.activity.common.R;
 import com.campus.activity.module.activity.entity.Activity;
-import com.campus.activity.module.activity.entity.Attachment;
+import com.campus.activity.module.activity.dto.ActivitySaveRequest;
+import com.campus.activity.module.activity.dto.ActivityRequestMapper;
+import jakarta.validation.Valid;
 import com.campus.activity.module.activity.service.ActivityService;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,17 +27,18 @@ public class ActivityController {
     private final ActivityService activityService;
 
     @PostMapping
-    public R<Map<String, Object>> create(@RequestBody Map<String, Object> body) {
-        Activity a = toEntity(body);
-        Long id = activityService.create(a, toAttachments(body));
+    @com.campus.activity.common.Idempotent
+    public R<Map<String, Object>> create(@Valid @RequestBody ActivitySaveRequest request) {
+        Activity a = ActivityRequestMapper.activity(request);
+        Long id = activityService.create(a, ActivityRequestMapper.attachments(request));
         return R.ok(Map.of("activityId", id, "signupGuid", a.getSignupGuid()));
     }
 
     @PutMapping("/{id}")
-    public R<Void> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        Activity a = toEntity(body);
+    public R<Void> update(@PathVariable Long id, @Valid @RequestBody ActivitySaveRequest request) {
+        Activity a = ActivityRequestMapper.activity(request);
         a.setActivityId(id);
-        activityService.update(a, toAttachments(body));
+        activityService.update(a, ActivityRequestMapper.attachments(request));
         return R.ok();
     }
 
@@ -54,16 +54,9 @@ public class ActivityController {
         return R.ok();
     }
 
-    /** 签到开关（FR-08）。独立于编辑接口，便于前端单独切换并记录操作日志。 */
-    @PutMapping("/{id}/checkin")
-    public R<Void> toggleCheckin(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        Object v = body.get("enabled");
-        if (v == null) {
-            throw new BusinessException("缺少 enabled 参数");
-        }
-        String s = String.valueOf(v);
-        boolean enabled = "true".equalsIgnoreCase(s) || "1".equals(s);
-        activityService.toggleCheckin(id, enabled);
+    @PutMapping("/{id}/checkin-enabled")
+    public R<Void> checkinEnabled(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
+        activityService.setCheckinEnabled(id, body.get("enabled"));
         return R.ok();
     }
 
@@ -101,71 +94,6 @@ public class ActivityController {
     @GetMapping("/{id}/checkin-config")
     public R<Activity> checkinConfig(@PathVariable Long id) {
         return R.ok(activityService.checkinConfig(id));
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Attachment> toAttachments(Map<String, Object> body) {
-        // 语义区分：未携带 attachments → null（不修改）；携带空数组 → 空列表（清空）
-        if (!body.containsKey("attachments")) {
-            return null;
-        }
-        Object raw = body.get("attachments");
-        if (!(raw instanceof List<?> list) || list.isEmpty()) {
-            return List.of();
-        }
-        return ((List<Map<String, Object>>) list).stream().map(m -> {
-            Attachment att = new Attachment();
-            att.setFileName((String) m.get("fileName"));
-            att.setFileUrl((String) m.get("url"));
-            Object size = m.get("fileSize");
-            att.setFileSize(size == null ? null : Long.valueOf(String.valueOf(size)));
-            return att;
-        }).toList();
-    }
-
-    private Activity toEntity(Map<String, Object> body) {
-        Activity a = new Activity();
-        a.setTitle((String) body.get("title"));
-        a.setTypeCode((String) body.get("typeCode"));
-        a.setIntroduction((String) body.get("introduction"));
-        a.setLocation((String) body.get("location"));
-        a.setLngLat((String) body.get("lngLat"));
-        a.setLiveUrl((String) body.get("liveUrl"));
-        a.setCoverUrl((String) body.get("coverUrl"));
-        a.setStartTime(parseTime(body.get("startTime")));
-        a.setEndTime(parseTime(body.get("endTime")));
-        a.setSignupDeadline(parseTime(body.get("signupDeadline")));
-        Object quota = body.get("quota");
-        a.setQuota(quota == null ? null : Integer.valueOf(String.valueOf(quota)));
-        Object radius = body.get("checkinRadius");
-        a.setCheckinRadius(radius == null ? 500 : Integer.valueOf(String.valueOf(radius)));
-        Object checkinEnabled = body.get("checkinEnabled");
-        a.setCheckinEnabled(checkinEnabled == null ? null : Integer.valueOf(String.valueOf(checkinEnabled)));
-        return a;
-    }
-
-    /** 前端 datetime-local 与后端统一使用 yyyy-MM-dd HH:mm:ss，同时兼容 ISO 的 T 分隔格式。 */
-    private static final DateTimeFormatter SPACE_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-    private LocalDateTime parseTime(Object v) {
-        if (v == null) {
-            return null;
-        }
-        String s = String.valueOf(v).trim();
-        if (s.isEmpty()) {
-            return null;
-        }
-        if (s.length() == 16) {
-            s = s + ":00";                  // yyyy-MM-ddTHH:mm / yyyy-MM-dd HH:mm
-        }
-        if (s.length() == 10) {
-            s = s + " 00:00:00";           // 纯日期
-        }
-        if (s.indexOf(' ') > 0) {
-            return LocalDateTime.parse(s.replace('T', ' '), SPACE_FORMATTER);
-        }
-        return LocalDateTime.parse(s);      // yyyy-MM-ddTHH:mm:ss
     }
 
     public ActivityController(ActivityService activityService) {

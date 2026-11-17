@@ -1,0 +1,34 @@
+[
+  {
+    "suite": "audit",
+    "exitCode": 0
+  },
+  {
+    "suite": "round2",
+    "exitCode": 0
+  },
+  {
+    "suite": "platform",
+    "exitCode": 0
+  },
+  {
+    "suite": "review",
+    "exitCode": 0
+  },
+  {
+    "suite": "structure",
+    "exitCode": 0
+  },
+  {
+    "suite": "round3",
+    "exitCode": 0
+  },
+  {
+    "suite": "enterprise",
+    "exitCode": 0
+  },
+  {
+    "suite": "topic2",
+    "exitCode": 0
+  }
+]

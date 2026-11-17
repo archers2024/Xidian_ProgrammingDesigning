@@ -1,0 +1,53 @@
+{
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "备份不包含切换目标库语句",
+      "pass": true
+    },
+    {
+      "name": "篡改的加密备份被拒绝",
+      "pass": true
+    },
+    {
+      "name": "恢复后核心表记录总数一致",
+      "pass": true
+    },
+    {
+      "name": "恢复后上传文件逐个哈希一致",
+      "pass": true
+    },
+    {
+      "name": "恢复库可以启动应用并达到就绪",
+      "pass": true
+    },
+    {
+      "name": "恢复后的账号可以正常登录",
+      "pass": true
+    }
+  ],
+  "metrics": {
+    "source": "campus_test_1794844202073",
+    "target": "campus_restore_1794844556582",
+    "coreTableCounts": {
+      "t_organization": 8,
+      "t_admin": 15,
+      "t_activity": 18,
+      "t_activity_review": 8,
+      "t_registration": 315,
+      "t_checkin": 304,
+      "t_attachment": 5,
+      "t_file_asset": 3
+    },
+    "fileCount": 3,
+    "encryptedBytes": 132320,
+    "encryptedSha256": "4c8dcf3ac0191588b81c718dd4360e752566ca514e5a1e77e9e4c62b3771a5e3",
+    "restoreElapsedMs": 7950.1041000000005
+  },
+  "kind": "quiescent local isolated restore drill; not a production RPO/RTO guarantee",
+  "work": "C:\\Users\\33719\\Desktop\\Xidian_ProgrammingDesigning-main\\backend\\target\\restore-drill-1794844556582"
+}

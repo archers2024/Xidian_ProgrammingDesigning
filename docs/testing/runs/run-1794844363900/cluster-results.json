@@ -1,0 +1,186 @@
+{
+  "time": "2026-11-16T15:53:23.260Z",
+  "schema": "campus_test_1794844202073",
+  "kind": "local bounded diagnostic, not production capacity acceptance",
+  "sourceJarHash": "3bd9096cba9059f5a5413323a330c8395d65ed8f6de01d213f33737a4821cedc",
+  "runnerHash": "8d06a0e1bf154099065603be2201adc745bda92227ba9ef07fe423fff928bb7a",
+  "summary": {
+    "total": 11,
+    "passed": 11,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "第二实例连接同一隔离库",
+      "pass": true
+    },
+    {
+      "name": "双实例同时停用最后两名超管仅一次成功",
+      "pass": true,
+      "evidence": {
+        "codes": [
+          0,
+          40001
+        ]
+      }
+    },
+    {
+      "name": "双实例竞争后至少保留一名超管",
+      "pass": true
+    },
+    {
+      "name": "single-read完备记账与成功率",
+      "pass": true,
+      "evidence": {
+        "success": 300,
+        "count": 300
+      }
+    },
+    {
+      "name": "dual-read完备记账与成功率",
+      "pass": true,
+      "evidence": {
+        "success": 600,
+        "count": 600
+      }
+    },
+    {
+      "name": "single-read-15s完备记账与成功率",
+      "pass": true,
+      "evidence": {
+        "success": 78302,
+        "count": 78302
+      }
+    },
+    {
+      "name": "dual-read-15s完备记账与成功率",
+      "pass": true,
+      "evidence": {
+        "success": 56000,
+        "count": 56000
+      }
+    },
+    {
+      "name": "single-checkin完备记账与成功率",
+      "pass": true,
+      "evidence": {
+        "success": 300,
+        "count": 300
+      }
+    },
+    {
+      "name": "单实例签到写入行数完整",
+      "pass": true
+    },
+    {
+      "name": "dual-checkin完备记账与成功率",
+      "pass": true,
+      "evidence": {
+        "success": 300,
+        "count": 300
+      }
+    },
+    {
+      "name": "双实例签到写入行数完整",
+      "pass": true
+    }
+  ],
+  "phases": [
+    {
+      "name": "single-read",
+      "count": 300,
+      "completed": 300,
+      "success": 300,
+      "failed": 0,
+      "elapsedMs": 126.97239999999965,
+      "rps": 2362.718197025502,
+      "latencyDenominator": "all completed requests, including failures",
+      "p50": 6.191600000000108,
+      "p95": 9.782000000000153,
+      "p99": 15.131599999999708,
+      "maxInflight": 16,
+      "remainingInflight": 0,
+      "failures": []
+    },
+    {
+      "name": "dual-read",
+      "count": 600,
+      "completed": 600,
+      "success": 600,
+      "failed": 0,
+      "elapsedMs": 390.4817000000003,
+      "rps": 1536.5636853148294,
+      "latencyDenominator": "all completed requests, including failures",
+      "p50": 18.10609999999997,
+      "p95": 39.64609999999993,
+      "p99": 73.09329999999954,
+      "maxInflight": 32,
+      "remainingInflight": 0,
+      "failures": []
+    },
+    {
+      "name": "single-read-15s",
+      "count": 78302,
+      "completed": 78302,
+      "success": 78302,
+      "failed": 0,
+      "elapsedMs": 15002.3161,
+      "rps": 5219.3274343819485,
+      "latencyDenominator": "all completed requests, including failures",
+      "p50": 2.780800000000454,
+      "p95": 5.150200000000041,
+      "p99": 8.897899999999936,
+      "maxInflight": 16,
+      "remainingInflight": 0,
+      "failures": []
+    },
+    {
+      "name": "dual-read-15s",
+      "count": 56000,
+      "completed": 56000,
+      "success": 56000,
+      "failed": 0,
+      "elapsedMs": 15002.741699999999,
+      "rps": 3732.651079369047,
+      "latencyDenominator": "all completed requests, including failures",
+      "p50": 7.926500000001397,
+      "p95": 14.22309999999925,
+      "p99": 19.04449999999997,
+      "maxInflight": 32,
+      "remainingInflight": 0,
+      "failures": []
+    },
+    {
+      "name": "single-checkin",
+      "count": 300,
+      "completed": 300,
+      "success": 300,
+      "failed": 0,
+      "elapsedMs": 363.40529999999853,
+      "rps": 825.5245589428696,
+      "latencyDenominator": "all completed requests, including failures",
+      "p50": 36.709499999997206,
+      "p95": 49.34679999999935,
+      "p99": 52.10410000000411,
+      "maxInflight": 32,
+      "remainingInflight": 0,
+      "failures": []
+    },
+    {
+      "name": "dual-checkin",
+      "count": 300,
+      "completed": 300,
+      "success": 300,
+      "failed": 0,
+      "elapsedMs": 407.15810000000056,
+      "rps": 736.8145199616552,
+      "latencyDenominator": "all completed requests, including failures",
+      "p50": 55.90520000000106,
+      "p95": 238.3257999999987,
+      "p99": 277.6689000000042,
+      "maxInflight": 64,
+      "remainingInflight": 0,
+      "failures": []
+    }
+  ]
+}

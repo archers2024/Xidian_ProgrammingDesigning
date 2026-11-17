@@ -1,0 +1,60 @@
+name: Build, isolated integration and UI checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17', cache: maven, cache-dependency-path: backend/pom.xml}
+      - run: mvn -B -f backend/pom.xml verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: unit-reports, path: backend/target/surefire-reports/, retention-days: 14}
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm, cache-dependency-path: frontend/package-lock.json}
+      - run: npm ci && npm run check
+        working-directory: frontend
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env: {MYSQL_ROOT_PASSWORD: ci-root-test-only, MYSQL_ROOT_HOST: '%'}
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping -pci-root-test-only" --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      TEST_ROOT_PASSWORD: ci-root-test-only
+      TEST_DB_PASSWORD: ci-runtime-test-only-37
+      MYSQL_BIN: mysql
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17', cache: maven, cache-dependency-path: backend/pom.xml}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm, cache-dependency-path: frontend/package-lock.json}
+      - run: mvn -B -f backend/pom.xml package
+      - run: node scripts/start-isolated.mjs
+      - run: node scripts/run-isolated.mjs
+      - run: node scripts/run-isolated.mjs cluster restore
+      - run: npm ci && npm run build && npx playwright install --with-deps chromium && npm run test:e2e
+        working-directory: frontend
+      - run: for file in deploy/*.sh; do bash -n "$file"; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: isolated-integration-evidence
+          retention-days: 14
+          path: |
+            docs/testing/runs/
+            frontend/test-results/
+            backend/target/*-run.log
+            backend/target/e2e-*/
+      - run: node scripts/stop-isolated.mjs
+        if: always()

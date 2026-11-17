@@ -1,14 +1,32 @@
+export const reviewApi = {
+ snapshot: id => request.get(`/admin/reviews/${id}/snapshot`),
+ queue: (params) => request.get('/admin/reviews',{params}),
+ submit: (id) => request.post(`/admin/activity/${id}/submit-review`),
+ history: (id) => request.get(`/admin/activity/${id}/reviews`),
+ decide: (id,data) => request.put(`/super/reviews/${id}/decision`,data)
+}
 import request from './request'
+export const organizationApi = {
+  reviewPolicy: (id,requireReview) => request.put(`/super/organizations/${id}/review-policy`,{requireReview}),
+  available: (keyword) => request.get('/admin/organizations',{params:{keyword}}),
+  list: () => request.get('/super/organizations'),
+  page: (params) => request.get('/super/organizations/page',{params}),
+  create: (data) => request.post('/super/organizations', data),
+  status: (id,status) => request.put(`/super/organizations/${id}/status`,{status}),
+  audit: (params) => request.get('/super/audit-logs',{params})
+}
 
 // A岗 认证与账号
 export const authApi = {
   login: (data) => request.post('/auth/login', data),
   logout: () => request.post('/auth/logout'),
-  current: () => request.get('/admin/current')
+  current: () => request.get('/admin/current'),
+  changePassword: (data) => request.put('/admin/password', data)
 }
 
 export const adminApi = {
   list: () => request.get('/super/admin/accounts'),
+  page: (params) => request.get('/super/admin/accounts/page',{params}),
   create: (data) => request.post('/super/admin/accounts', data),
   status: (id, status) => request.put(`/super/admin/accounts/${id}/status`, { status }),
   resetPwd: (id) => request.put(`/super/admin/accounts/${id}/password`)
@@ -21,35 +39,29 @@ export const fileApi = {
 }
 
 // B岗 活动域
-export const activityApi = {
-  page: (params) => request.get('/admin/activity/list', { params }),
-  detail: (id) => request.get(`/admin/activity/${id}`),
-  create: (data) => request.post('/admin/activity', data),
-  update: (id, data) => request.put(`/admin/activity/${id}`, data),
-  remove: (id) => request.delete(`/admin/activity/${id}`),
-  publish: (id) => request.post(`/admin/activity/${id}/publish`),
-  toggleCheckin: (id, enabled) => request.put(`/admin/activity/${id}/checkin`, { enabled }),
-  qrcode: (id) => request.get(`/admin/activity/${id}/qrcode`)
-}
+export {activityApi} from './activities'
 
 // C岗 报名域
 export const signupApi = {
   promo: (guid) => request.get(`/promo/${guid}`),
-  submit: (data) => request.post('/signup', data),
+  submit: (data,key) => request.post('/signup',data,{headers:key?{'Idempotency-Key':key}:{}}),
+  page: (id,params) => request.get(`/admin/activity/${id}/registrations/page`,{params}),
   list: (activityId, maskPhone = true) =>
     request.get(`/admin/activity/${activityId}/registrations`, { params: { maskPhone } }),
-  // 导出用浏览器直链（无法带 Header），token 走 query 参数，后端拦截器已支持
+  // Cookie session and CSRF protection; export through authenticated Blob requests.
   exportUrl: (activityId, maskPhone = true) =>
-    `/api/v1/admin/activity/${activityId}/registrations/export?maskPhone=${maskPhone}&token=${localStorage.getItem('token') || ''}`
+    `/admin/activity/${activityId}/registrations/export?maskPhone=${maskPhone}`
 }
 
 // D岗 签到与统计域
 export const checkinApi = {
+  info:(id)=>request.get(`/checkin/activity/${id}`),
   board: (activityId) => request.get(`/checkin/qrcode/${activityId}`),
   submit: (data) => request.post('/checkin', data),
+  page: (id,params) => request.get(`/admin/activity/${id}/checkins/page`,{params}),
   list: (activityId) => request.get(`/admin/activity/${activityId}/checkins`),
   exportUrl: (activityId) =>
-    `/api/v1/admin/activity/${activityId}/checkins/export?token=${localStorage.getItem('token') || ''}`
+    `/admin/activity/${activityId}/checkins/export`
 }
 
 export const statisticsApi = {

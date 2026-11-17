@@ -1,0 +1,125 @@
+{
+  "time": "2026-11-16T15:31:36.356Z",
+  "schema": "campus_scale_1794843071552",
+  "kind": "isolated MySQL query-plan diagnostic; not an end-to-end production SLA",
+  "summary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "已建立一百万历史活动隔离数据集",
+      "pass": true
+    },
+    {
+      "name": "结束活动不再进入状态推进候选集",
+      "pass": true
+    },
+    {
+      "name": "设备限频查询选择联合索引",
+      "pass": true
+    },
+    {
+      "name": "设备与时间过滤命中预期50条",
+      "pass": true
+    }
+  ],
+  "metrics": {
+    "freeDiskBefore": 80127889408,
+    "seedElapsedMs": 23006.5066,
+    "historicalRows": 1000000,
+    "currentPlan": {
+      "query_block": {
+        "select_id": 1,
+        "table": {
+          "update": true,
+          "table_name": "t_activity",
+          "access_type": "range",
+          "possible_keys": [
+            "idx_activity_status"
+          ],
+          "key": "idx_activity_status",
+          "used_key_parts": [
+            "status"
+          ],
+          "key_length": "82",
+          "ref": [
+            "const"
+          ],
+          "rows_examined_per_scan": 3,
+          "filtered": "100.00",
+          "using_temporary_table": "for update",
+          "attached_condition": "((`campus_scale_1794843071552`.`t_activity`.`deleted` = 0) and (`campus_scale_1794843071552`.`t_activity`.`status` in ('OPEN','CLOSED','ONGOING')) and (`campus_scale_1794843071552`.`t_activity`.`status` <> (case when (`campus_scale_1794843071552`.`t_activity`.`end_time` <= now()) then 'FINISHED' when (`campus_scale_1794843071552`.`t_activity`.`start_time` <= now()) then 'ONGOING' when (`campus_scale_1794843071552`.`t_activity`.`signup_deadline` <= now()) then 'CLOSED' else 'OPEN' end)))"
+        }
+      }
+    },
+    "previousPredicatePlan": {
+      "query_block": {
+        "select_id": 1,
+        "table": {
+          "update": true,
+          "table_name": "t_activity",
+          "access_type": "index",
+          "possible_keys": [
+            "idx_activity_status"
+          ],
+          "key": "PRIMARY",
+          "used_key_parts": [
+            "activity_id"
+          ],
+          "key_length": "8",
+          "rows_examined_per_scan": 986936,
+          "filtered": "100.00",
+          "attached_condition": "((`campus_scale_1794843071552`.`t_activity`.`deleted` = 0) and (`campus_scale_1794843071552`.`t_activity`.`status` in ('OPEN','CLOSED','ONGOING','FINISHED')) and (`campus_scale_1794843071552`.`t_activity`.`status` <> (case when (`campus_scale_1794843071552`.`t_activity`.`end_time` <= now()) then 'FINISHED' when (`campus_scale_1794843071552`.`t_activity`.`start_time` <= now()) then 'ONGOING' when (`campus_scale_1794843071552`.`t_activity`.`signup_deadline` <= now()) then 'CLOSED' else 'OPEN' end)))"
+        }
+      }
+    },
+    "currentCandidates": 0,
+    "previousCandidates": 1000000,
+    "currentRefreshMs": 40.14519999999902,
+    "devicePlan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "10.67"
+        },
+        "table": {
+          "table_name": "t_checkin",
+          "access_type": "range",
+          "possible_keys": [
+            "idx_checkin_activity",
+            "idx_checkin_time",
+            "idx_checkin_device_window"
+          ],
+          "key": "idx_checkin_device_window",
+          "used_key_parts": [
+            "activity_id",
+            "device_fingerprint",
+            "checkin_time"
+          ],
+          "key_length": "272",
+          "rows_examined_per_scan": 50,
+          "rows_produced_per_join": 50,
+          "filtered": "100.00",
+          "using_index": true,
+          "cost_info": {
+            "read_cost": "5.67",
+            "eval_cost": "5.00",
+            "prefix_cost": "10.67",
+            "data_read_per_join": "28K"
+          },
+          "used_columns": [
+            "activity_id",
+            "checkin_time",
+            "device_fingerprint"
+          ],
+          "attached_condition": "((`campus_scale_1794843071552`.`t_checkin`.`device_fingerprint` = '0000000000000000') and (`campus_scale_1794843071552`.`t_checkin`.`activity_id` = 1) and (`campus_scale_1794843071552`.`t_checkin`.`checkin_time` >= <cache>((now() - interval 300 second))))"
+        }
+      }
+    },
+    "deviceRows": 50,
+    "selectedDeviceIndex": "idx_checkin_device_window",
+    "tableBytes": 395706368
+  }
+}

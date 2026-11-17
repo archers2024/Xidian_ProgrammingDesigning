@@ -1,0 +1,1 @@
+<template><main class="page-state"><h1>{{route.meta.forbidden?'没有访问权限':'页面不存在'}}</h1><p>{{route.meta.forbidden?'请使用具有相应权限的账号。':'链接可能已失效，请从工作台重新进入。'}}</p><el-button type="primary" @click="$router.push('/dashboard')">返回工作台</el-button></main></template><script setup>import {useRoute} from 'vue-router';const route=useRoute()</script>

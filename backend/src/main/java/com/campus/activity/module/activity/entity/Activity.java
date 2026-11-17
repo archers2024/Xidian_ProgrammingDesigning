@@ -18,6 +18,16 @@ public class Activity {
 
     @TableId(type = IdType.AUTO)
     private Long activityId;
+    private Long orgId;
+    private Long version;
+    private String checkinPolicy;
+    public Long getVersion(){return version;} public void setVersion(Long value){version=value;}
+    public String getCheckinPolicy(){return checkinPolicy==null?"BASIC":checkinPolicy;} public void setCheckinPolicy(String value){checkinPolicy=value;}
+    private String approvalStatus;
+    @com.baomidou.mybatisplus.annotation.TableField(exist=false) private Boolean reviewRequired;
+    public String getApprovalStatus(){return approvalStatus==null?"NONE":approvalStatus;} public void setApprovalStatus(String v){approvalStatus=v;}
+    public Boolean getReviewRequired(){return reviewRequired;} public void setReviewRequired(Boolean v){reviewRequired=v;}
+    public Long getOrgId(){return orgId;} public void setOrgId(Long value){orgId=value;}
 
     private String activityNo;
 
@@ -48,6 +58,7 @@ public class Activity {
 
     private Integer checkinEnabled;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String checkinSecret;
 
     private Integer checkinRadius;

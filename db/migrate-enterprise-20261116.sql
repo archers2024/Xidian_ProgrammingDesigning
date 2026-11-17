@@ -1,0 +1,13 @@
+ALTER TABLE t_activity ADD COLUMN version BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE t_activity ADD COLUMN checkin_policy VARCHAR(30) NOT NULL DEFAULT 'BASIC';
+ALTER TABLE t_activity_review ADD COLUMN title_snapshot VARCHAR(200) DEFAULT NULL;
+ALTER TABLE t_activity_review ADD COLUMN content_snapshot LONGTEXT DEFAULT NULL;
+ALTER TABLE t_activity_review ADD COLUMN snapshot_hash CHAR(64) DEFAULT NULL;
+ALTER TABLE t_activity_review ADD COLUMN activity_version BIGINT DEFAULT NULL;
+CREATE INDEX idx_checkin_device_window ON t_checkin(activity_id,device_fingerprint,checkin_time);
+CREATE TABLE t_business_guard (guard_key VARCHAR(50) PRIMARY KEY);
+INSERT INTO t_business_guard VALUES ('SUPER_ADMIN');
+CREATE TABLE t_rate_limit (bucket_key VARCHAR(192) PRIMARY KEY, hits INT NOT NULL, expires_at DATETIME NOT NULL, INDEX idx_rate_expiry(expires_at));
+CREATE TABLE t_idempotency (request_key CHAR(64) PRIMARY KEY, content_hash CHAR(64) NOT NULL, response_json LONGTEXT, expires_at DATETIME NOT NULL, INDEX idx_idem_expiry(expires_at));
+CREATE TABLE t_checkin_device (activity_id BIGINT NOT NULL, fingerprint VARCHAR(64) NOT NULL, last_checkin DATETIME DEFAULT NULL, PRIMARY KEY(activity_id,fingerprint));
+CREATE TABLE t_file_asset (asset_id CHAR(36) PRIMARY KEY, org_id BIGINT NOT NULL, owner_id BIGINT NOT NULL, storage_key VARCHAR(300) NOT NULL, original_name VARCHAR(200) NOT NULL, visibility VARCHAR(10) NOT NULL DEFAULT 'PRIVATE', file_size BIGINT NOT NULL, state VARCHAR(20) NOT NULL DEFAULT 'UPLOADED', create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_file_owner(org_id,state,create_time));

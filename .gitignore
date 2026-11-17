@@ -13,9 +13,6 @@ run-logs/
 *.bak
 *.tmp
 
-## MySQL 二进制数据目录（约 197MB，含 TLS 私钥与运行状态，不入库）
-db/data/
-
 ## 本地配置与系统文件
 .env
 .env.*
@@ -25,3 +22,10 @@ Thumbs.db
 .idea/
 .vscode/
 *.iml
+
+backend/config/*.properties
+playwright-report/
+test-results/
+
+backend/logs/
+backend/config/test-*.properties

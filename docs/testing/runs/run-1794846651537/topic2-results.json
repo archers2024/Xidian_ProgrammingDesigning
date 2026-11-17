@@ -1,0 +1,248 @@
+{
+  "time": "2026-11-16T16:31:00.522Z",
+  "schema": "campus_test_1794846210783",
+  "jarSha256": "e365ed990d34a69e1716cc28530dfc19f70e3ee347dec0d355d9e331145bc806",
+  "summary": {
+    "total": 50,
+    "passed": 50,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "创建包含必填字段、直播链接，初始未发布",
+      "pass": true
+    },
+    {
+      "name": "未发布活动不允许匿名报名",
+      "pass": true
+    },
+    {
+      "name": "发布活动成功",
+      "pass": true
+    },
+    {
+      "name": "发布时间持久化并随活动列表返回",
+      "pass": true
+    },
+    {
+      "name": "匿名可查看宣传信息和报名时效",
+      "pass": true
+    },
+    {
+      "name": "报名字段验证 {\"name\":\"\",\"phone\":\"13911110000\",\"collegeCode\":\"ART\"}",
+      "pass": true
+    },
+    {
+      "name": "报名字段验证 {\"name\":\"验收学生\",\"phone\":\"123\",\"collegeCode\":\"ART\"}",
+      "pass": true
+    },
+    {
+      "name": "报名字段验证 {\"name\":\"验收学生\",\"phone\":\"13911110000\",\"collegeCode\":\"INVALID\"}",
+      "pass": true
+    },
+    {
+      "name": "参与人无需注册登录即可报名",
+      "pass": true
+    },
+    {
+      "name": "手机号去重",
+      "pass": true
+    },
+    {
+      "name": "剩余名额可报名",
+      "pass": true
+    },
+    {
+      "name": "满额禁止继续报名",
+      "pass": true
+    },
+    {
+      "name": "编辑自动更新原链接宣传内容并保留报名人员",
+      "pass": true
+    },
+    {
+      "name": "缩减名额不丢报名计数",
+      "pass": true
+    },
+    {
+      "name": "DRAFT状态可编辑且原链接与生命周期不丢失",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success",
+        "data": null
+      }
+    },
+    {
+      "name": "DRAFT状态可删除",
+      "pass": true
+    },
+    {
+      "name": "DRAFT删除后不可访问或报名",
+      "pass": true
+    },
+    {
+      "name": "OPEN状态可编辑且原链接与生命周期不丢失",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success",
+        "data": null
+      }
+    },
+    {
+      "name": "OPEN状态可删除",
+      "pass": true
+    },
+    {
+      "name": "OPEN删除后不可访问或报名",
+      "pass": true
+    },
+    {
+      "name": "CLOSED状态可编辑且原链接与生命周期不丢失",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success",
+        "data": null
+      }
+    },
+    {
+      "name": "CLOSED状态可删除",
+      "pass": true
+    },
+    {
+      "name": "CLOSED删除后不可访问或报名",
+      "pass": true
+    },
+    {
+      "name": "ONGOING状态可编辑且原链接与生命周期不丢失",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success",
+        "data": null
+      }
+    },
+    {
+      "name": "ONGOING状态可删除",
+      "pass": true
+    },
+    {
+      "name": "ONGOING删除后不可访问或报名",
+      "pass": true
+    },
+    {
+      "name": "FINISHED状态可编辑且原链接与生命周期不丢失",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success",
+        "data": null
+      }
+    },
+    {
+      "name": "FINISHED状态可删除",
+      "pass": true
+    },
+    {
+      "name": "FINISHED删除后不可访问或报名",
+      "pass": true
+    },
+    {
+      "name": "CANCELED状态可编辑且原链接与生命周期不丢失",
+      "pass": true,
+      "evidence": {
+        "http": 200,
+        "code": 0,
+        "message": "success",
+        "data": null
+      }
+    },
+    {
+      "name": "CANCELED状态可删除",
+      "pass": true
+    },
+    {
+      "name": "CANCELED删除后不可访问或报名",
+      "pass": true
+    },
+    {
+      "name": "待审时仍可编辑",
+      "pass": true
+    },
+    {
+      "name": "待审旧申请自动撤销且不可再批准",
+      "pass": true
+    },
+    {
+      "name": "旧申请不可变快照保留",
+      "pass": true
+    },
+    {
+      "name": "管理员可开启进行中活动签到",
+      "pass": true
+    },
+    {
+      "name": "基本签到无需参与人账号",
+      "pass": true
+    },
+    {
+      "name": "重复签到拒绝",
+      "pass": true
+    },
+    {
+      "name": "动态码半分钟刷新并提供到期时间",
+      "pass": true
+    },
+    {
+      "name": "实际跨越30秒时间片后动态码更新",
+      "pass": true
+    },
+    {
+      "name": "准确签到禁止降级基本签到",
+      "pass": true
+    },
+    {
+      "name": "过期动态码不能签到",
+      "pass": true
+    },
+    {
+      "name": "异地定位不能签到",
+      "pass": true
+    },
+    {
+      "name": "现场定位和当前动态码准确签到成功",
+      "pass": true
+    },
+    {
+      "name": "签到后编辑保留报名与签到",
+      "pass": true
+    },
+    {
+      "name": "删除保留报名及签到历史数据",
+      "pass": true
+    },
+    {
+      "name": "删除后签到关闭",
+      "pass": true
+    },
+    {
+      "name": "组合条件筛选 typeCode=LECTURE",
+      "pass": true
+    },
+    {
+      "name": "组合条件筛选 status=OPEN",
+      "pass": true
+    },
+    {
+      "name": "组合条件筛选 from=2026-11-17T01:31:00&to=2026-11-17T03:31:00",
+      "pass": true
+    }
+  ]
+}

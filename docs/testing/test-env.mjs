@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import path from 'node:path';
+export const base=process.env.TEST_BASE;
+export const testPassword=process.env.TEST_ADMIN_PASSWORD;
+export const testUsername=process.env.TEST_ADMIN_USERNAME||'admin';
+if(process.env.TEST_ALLOW_MUTATIONS!=='1'||!base||!testPassword||!/^campus_test_[A-Za-z0-9_]+$/.test(process.env.TEST_SCHEMA||''))throw Error('Use the isolated test runner: explicit TEST_BASE, TEST_SCHEMA, TEST_ADMIN_PASSWORD and TEST_ALLOW_MUTATIONS=1 required');
+const response=await fetch(base+'/testing/identity');const identity=await response.json();
+if(identity.data?.testing!==true||identity.data.schema!==process.env.TEST_SCHEMA)throw Error('Target is not the named isolated test schema');
+const output=process.env.TEST_OUTPUT_DIR;
+if(!output||!path.resolve(output).startsWith(path.resolve('docs/testing/runs')+path.sep))throw Error('TEST_OUTPUT_DIR must be a unique directory under docs/testing/runs');
+fs.mkdirSync(output,{recursive:true});
+const write=fs.writeFileSync.bind(fs);
+fs.writeFileSync=(file,...args)=>{const name=String(file).replaceAll('\\','/');return write(name.startsWith('docs/testing/')&&!name.includes('/runs/')?path.join(output,path.basename(name)):file,...args)};

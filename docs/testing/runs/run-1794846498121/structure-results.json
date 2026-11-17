@@ -1,0 +1,87 @@
+{
+  "time": "2026-11-16T16:28:22.472Z",
+  "tag": "STRUCT_1794846502291",
+  "summary": {
+    "total": 13,
+    "passed": 13,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "新组织输入不能绕过默认审批策略",
+      "pass": true
+    },
+    {
+      "name": "不可批量注入活动状态和报名计数",
+      "pass": true
+    },
+    {
+      "name": "附件结构化请求可持久化",
+      "pass": true
+    },
+    {
+      "name": "省略附件时更新成功",
+      "pass": true
+    },
+    {
+      "name": "省略附件保持原附件",
+      "pass": true
+    },
+    {
+      "name": "空附件数组明确清空附件",
+      "pass": true
+    },
+    {
+      "name": "严格输入边界 {\"quota\":2.5}",
+      "pass": true,
+      "evidence": {
+        "code": 40001,
+        "message": "请求参数缺失或格式不正确"
+      }
+    },
+    {
+      "name": "严格输入边界 {\"orgId\":14.5}",
+      "pass": true,
+      "evidence": {
+        "code": 40001,
+        "message": "请求参数缺失或格式不正确"
+      }
+    },
+    {
+      "name": "严格输入边界 {\"title\":42}",
+      "pass": true,
+      "evidence": {
+        "code": 40001,
+        "message": "请求参数缺失或格式不正确"
+      }
+    },
+    {
+      "name": "严格输入边界 {\"attachments\":[null]}",
+      "pass": true,
+      "evidence": {
+        "code": 40001,
+        "message": "附件不能为空"
+      }
+    },
+    {
+      "name": "严格输入边界 {\"attachments\":[{\"fileName\":2,\"url\":\"/x.pdf\"}]}",
+      "pass": true,
+      "evidence": {
+        "code": 40001,
+        "message": "请求参数缺失或格式不正确"
+      }
+    },
+    {
+      "name": "严格输入边界 {\"attachments\":[{\"fileName\":\"x\",\"url\":\"/x.pdf\",\"fileSize\":1.2}]}",
+      "pass": true,
+      "evidence": {
+        "code": 40001,
+        "message": "请求参数缺失或格式不正确"
+      }
+    },
+    {
+      "name": "审批枚举拒绝未知值",
+      "pass": true
+    }
+  ]
+}

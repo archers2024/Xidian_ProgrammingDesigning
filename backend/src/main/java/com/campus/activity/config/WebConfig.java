@@ -8,8 +8,6 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.nio.file.Paths;
-
 /**
  * Web 配置：跨域、登录拦截、上传目录静态映射。
  */
@@ -21,6 +19,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${campus.file.upload-dir}")
     private String uploadDir;
 
+    @Value("${campus.cors-origins}")
+    private String[] corsOrigins;
+
     public WebConfig(LoginInterceptor loginInterceptor) {
         this.loginInterceptor = loginInterceptor;
     }
@@ -28,9 +29,10 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("*")
+                .allowedOrigins(corsOrigins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
+                .allowedHeaders("Authorization", "Content-Type", "X-CSRF-Token", "Idempotency-Key")
+                .exposedHeaders("X-Request-ID", "Content-Disposition")
                 .allowCredentials(true)
                 .maxAge(3600);
     }
@@ -42,11 +44,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 与 FileController 共用同一绝对根目录，避免相对路径在不同工作目录下指向不同位置
-        String location = Paths.get(uploadDir).toAbsolutePath().normalize().toUri().toString();
-        if (!location.endsWith("/")) {
-            location = location + "/";
-        }
-        registry.addResourceHandler("/files/**").addResourceLocations(location);
+        registry.addResourceHandler("/files/20*/**")
+                .addResourceLocations(java.nio.file.Path.of(uploadDir).toAbsolutePath().normalize().toUri().toString() + "/");
     }
 }

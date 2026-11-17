@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 
 @TableName("t_admin")
 public class Admin {
+    @com.baomidou.mybatisplus.annotation.TableField(exist=false) private String orgName;
+    public String getOrgName(){return orgName;} public void setOrgName(String value){orgName=value;}
 
     @TableId(type = IdType.AUTO)
     private Long adminId;
@@ -20,7 +22,18 @@ public class Admin {
     private String username;
 
     /** BCrypt 密文，不返回前端 */
+    @com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
     private String passwordHash;
+
+    private Long tokenVersion;
+    private Long orgId;
+    public Long getOrgId(){return orgId == null ? 1L : orgId;} public void setOrgId(Long value){orgId=value;}
+    private Boolean mustChangePassword;
+    public Boolean getMustChangePassword() { return Boolean.TRUE.equals(mustChangePassword); }
+    public void setMustChangePassword(Boolean value) { mustChangePassword = value; }
+
+    public Long getTokenVersion() { return tokenVersion == null ? 0L : tokenVersion; }
+    public void setTokenVersion(Long value) { tokenVersion = value; }
 
     private String realName;
 
@@ -31,12 +44,6 @@ public class Admin {
 
     /** 1 启用 / 0 停用 */
     private Integer status;
-
-    /**
-     * 令牌版本：每次停用、重置密码、调整角色时自增。
-     * JWT 中携带签发时的版本，拦截器比对不一致即视为已撤销，使旧令牌立即失效。
-     */
-    private Integer tokenVersion;
 
     private LocalDateTime lastLoginTime;
 
@@ -96,14 +103,6 @@ public class Admin {
 
     public void setStatus(Integer status) {
         this.status = status;
-    }
-
-    public Integer getTokenVersion() {
-        return tokenVersion;
-    }
-
-    public void setTokenVersion(Integer tokenVersion) {
-        this.tokenVersion = tokenVersion;
     }
 
     public LocalDateTime getLastLoginTime() {

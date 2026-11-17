@@ -1,6 +1,18 @@
-# 高校学生活动全流程管理系统
+# 校园协同与活动管理平台
+
+2026-11-17：已按题目二修正所有状态编辑、发布时间展示及删除语义，并修复编辑页加载覆盖输入。最新结果见 [题目二验收报告](docs/testing/TOPIC2-ACCEPTANCE-20261117.md)。
+
+现支持多组织活动空间、组织管理员权限隔离、工作台、平台操作审计，以及原有活动发布、报名、签到和统计流程。普通管理员管理所属组织；超级管理员管理全平台。
+
+已完成多组织隔离、审批快照、Cookie 会话、共享限流、版本冲突保护、分页导出、文件权限与回收、健康探针和可校验部署包。最新验收口径以 [64项闭环与验收记录](docs/testing/OPTIMIZATION-CLOSURE-20261116.md) 为准。没有服务器，生产上线尚未验收。
 
 前后端分离的课程实训项目：PC 管理后台负责活动发布、报名名单、签到记录与数据统计；移动端 H5 负责宣传页、在线报名、扫码签到与签到大屏。全流程闭环为「建活动 → 发布 → 扫码看宣传页 → 报名 → 扫码签到 → 导出名单 / 查看统计」。
+
+## 本轮结构整理
+
+前端统一导航、线性图标、工作台、数据卡片与列表风格，保留真实业务数据。后端将组织管理和审计从控制器下沉到服务；活动与审批使用请求 DTO、领域规则和共享组织访问边界。事务方法保留活动行锁；组织状态与策略按列更新。
+
+维护约定见 [架构与维护约定](docs/06-架构与维护约定.md)。本地执行 `mvn -f backend/pom.xml test` 可运行不依赖数据库的单元测试；`.github/workflows/ci.yml` 提供后续 GitHub CI 工作流。
 
 ## 技术栈
 
@@ -9,116 +21,59 @@
 | 后端 | Spring Boot 3.2.5、Java 17（可在 JDK 25 运行）、MyBatis-Plus、MySQL 8、JJWT、Spring Security Crypto（BCrypt）、ZXing、Apache POI、Hutool |
 | 前端 | Vue 3.4、Vite 5、Vue Router 4、Pinia、Element Plus、ECharts、axios、qrcode |
 | 部署 | Nginx 反向代理 + systemd + 可执行 jar，静态资源由 Vite 构建 |
-| 数据库 | 8 张表，字典表独立，满足第三范式；`db/init.sql` 一次建库建表并灌入字典数据 |
+| 数据库 | 版本化业务表，字典表独立，满足第三范式；`db/init.sql` 一次建库建表并灌入字典数据 |
 
 ## 仓库目录
 
 ```
 .
 ├── README.md                    本文件
-├── 首次安装.cmd                 编译后端 + 安装前端依赖（英文名 install.cmd）
-├── 初始化数据库.cmd             没有 MySQL 服务时建工程内实例并导入快照（init-db.cmd）
-├── 启动全部.cmd                 一键启动：MySQL → 后端 → 前端（start-all.cmd）
-├── 停止全部.cmd                 一键停止（stop-all.cmd）
-├── scripts/
-│   ├── install-all.ps1          首次安装逻辑，自动探测 JDK 与 Node
-│   ├── init-db.ps1              初始化 db\data、设置 root 密码、导入 dump
-│   ├── start-all.ps1            启动逻辑，自动探测 MySQL 与 JDK
-│   └── stop-all.ps1             停止逻辑，MySQL 走 mysqladmin 优雅关闭
-├── db/                          数据库交付物
-│   ├── init.sql                 建库 + 8 张表 + 字典数据
-│   ├── campus_activity_dump.sql 真实 mysqldump 导出的完整库（含 2 活动 / 1 报名 / 1 签到）
-│   ├── campus_activity_snapshot.sql  等价快照（中文注释版）
-│   ├── demo-data.sql            演示数据（活动/报名/签到）
-│   ├── export-dump.cmd          重新导出运行库的脚本
-│   └── README.md                数据库文件说明
+├── db/init.sql                  建库 + 业务表 + 字典数据
 ├── backend/                     Spring Boot 工程
 │   ├── pom.xml
-│   ├── mvnw / mvnw.cmd          Maven Wrapper：不装 Maven 也能构建
 │   ├── src/main/java/com/campus/activity/
 │   │   ├── common/              统一响应 R、业务异常、全局异常处理
-│   │   ├── config/              CORS、拦截器注册、分页插件、定时任务、默认账号
+│   │   ├── config/              CORS、拦截器注册、分页插件、定时任务、首启账号
 │   │   ├── security/            JWT、登录拦截器、管理员上下文
 │   │   ├── util/                二维码、Excel、地理围栏
 │   │   └── module/              system / activity / signup / checkin 四个业务域
 │   ├── src/main/resources/application.yml
-│   └── start-backend.cmd        转发到根目录 start-all.cmd
+│   └── start-backend.cmd        本机 Windows 一键启动示例
 ├── frontend/                    Vue 3 工程（PC 后台 + H5 同工程）
 │   ├── src/api/                 axios 实例与接口封装
-│   ├── src/router/              后台 8 路由 + H5 4 路由
+│   ├── src/router/              角色路由及移动端页面
 │   ├── src/views/               PC 页面
 │   ├── src/mobile/              H5 页面
 │   ├── vite.config.js           开发代理（剥离 /api/v1）
-│   └── start-frontend.cmd       本机 Windows 启动示例
+│   └── start-frontend.cmd       本机 Windows 一键启动示例
 ├── deploy/                      服务器部署包（Nginx、systemd、生产配置、安装与冒烟脚本）
-└── docs/                        实现步骤、运行步骤、接口清单、设计文档、他人运行指南
+└── docs/                        实现步骤、运行步骤、接口清单、设计文档
 ```
 
 ## 快速开始
 
-需要：**JDK 17+**、**MySQL 8.0.x**、**Node.js 18+**。Maven 不用装，仓库自带 `mvnw`。详细说明与排错表见 **`docs/06-他人运行指南.md`**。
+仓库中旧版 `start-all.cmd` / `init-db.cmd` 及其 PowerShell 脚本基于旧数据库快照，尚未适配本次版本迁移和外置凭据。当前版本请按本页“快速开始”配置数据库、执行 MigrationTool 后运行，勿直接重复导入历史快照。
 
-> 整个项目路径必须是纯英文。mysqld 在 Windows 下解析含中文的 `--datadir` 会截断路径并报 `Failed to set datadir (OS errno: 2)`。
 
-### 直接一键启动
+需要：JDK 17+、Maven 3.8+、MySQL 8、Node.js 18+（推荐 20）。
 
-clone 后双击 `启动全部.cmd`（`start-all.cmd`）即可，缺什么自动补：数据库不存在 → 自动建库导入快照；jar 不存在 → 用自带 `mvnw` 编译；`node_modules` 不存在 → 自动 `npm ci`；MySQL 没在跑 → 用 `db\data` 起独立实例。首次 5–10 分钟，之后约 10 秒。
-
-停止用 `停止全部.cmd`。脚本自动探测 MySQL / JDK 安装位置，自动取默认路由网卡的 IP 拼手机端地址；数据目录固定为 `<工程根>\db\data`，跟着工程走。
-
-### 分步执行（想自己控制每一步）
-
-**第 1 步 · 首次安装**（可跳过，启动脚本会自动做）
-
-双击 `首次安装.cmd`（`install.cmd`）：自动探测 JDK → 编译后端 jar → 安装前端依赖。首次约 5–10 分钟，之后跳过。
-
-仓库不提交 `backend/target` 与 `frontend/node_modules`。
-
-**第 2 步 · 准备数据库**（二选一）
-
-- **已有 MySQL 服务**：确认服务在跑，然后导入快照，并把 `scripts/start-all.ps1` 里的 `$DbPass` 改成你自己的 root 密码。
-  ```cmd
-  net start MySQL80
-  mysql --default-character-set=utf8mb4 -uroot -p < db\campus_activity_dump.sql
-  ```
-- **没有 MySQL 服务**：双击 `初始化数据库.cmd`（`init-db.cmd`），在 `db\data` 建独立实例、设 root 密码 `123456`、自动导入快照，约 30 秒。
-
-**第 3 步 · 启动**
-
-双击 `启动全部.cmd`（`start-all.cmd`），依次拉起 MySQL → 后端 → 前端，自动跳过已在运行的组件，末尾打印访问地址。
-
-- 用工程内实例时，`sql_mode` 已写进 mysqld 启动参数，统计接口不会因重启失效；脚本仍保留一次 `SET GLOBAL` 兜底，兼容系统 MySQL 服务。
-- 探测失败才需要填 `scripts/start-all.ps1` 顶部的 `$MySQLBin` / `$JavaExe`。
-
-### 手动启动
+首次安装：先 `mvn -f backend/pom.xml package`。配置 `CAMPUS_MIGRATION_URL`、`CAMPUS_MIGRATION_USER`、`CAMPUS_MIGRATION_PASSWORD`，运行版本迁移：
 
 ```bash
-# 1. 建库建表与字典数据（必须指定 utf8mb4，否则中文数据报 ERROR 1366）
-mysql --default-character-set=utf8mb4 -uroot -p < db/init.sql
-# 想立刻看到真实数据，改用完整快照（含 2 个活动、1 条报名、1 条签到）
-# mysql --default-character-set=utf8mb4 -uroot -p < db/campus_activity_dump.sql
-# 或导入 db/demo-data.sql 得到 1 个活动、2 条报名、1 条签到
-
-# 2. 后端，修改 application.yml 中的数据库账号密码后执行
-cd backend
-mvnw.cmd -DskipTests package
-java -jar target/activity-system-1.0.0.jar
-
-# 3. 前端
-cd ../frontend
-npm ci
-npm run dev -- --host 0.0.0.0 --port 5173
+java -Dloader.main=com.campus.activity.tools.MigrationTool -cp backend/target/activity-system-1.0.0.jar org.springframework.boot.loader.launch.PropertiesLauncher
 ```
 
-浏览器打开 `http://localhost:5173`，默认超级管理员 **admin / admin123**（首次启动时由 `DataInitializer` 用 BCrypt 写入，SQL 脚本里没有明文口令）。
+应用使用独立的 DML 数据库账号，通过 `CAMPUS_DB_URL`、`CAMPUS_DB_USER`、`CAMPUS_DB_PASSWORD` 注入。全新数据库还须设置至少12位 `CAMPUS_BOOTSTRAP_PASSWORD`；首个账号为 admin，首次登录必须改密。已有账号不会重置。已有旧库需要备份、核对结构再显式基线，不能直接重复运行历史迁移或初始化 SQL。
 
-完整步骤见 `docs/06-他人运行指南.md` 与 `docs/02-运行步骤.md`，从零到验收的实现过程见 `docs/01-实现步骤.md`，服务器部署见 `docs/03-服务器部署.md`。
+IDEA 打开 `backend/pom.xml`，选择 JDK17、等待 Maven 导入，运行 `com.campus.activity.ActivityApplication`，工作目录设为 `backend`。本机已有数据库配置保存在被忽略的 `backend/config/local.properties`。另开终端执行 `cd frontend`、`npm ci`、`npm run dev`，访问 `http://localhost:5173`。
+
+服务器部署见 [部署手册](deploy/README.md)。旧文档保留历史实现记录；涉及口令、迁移、导出和部署步骤时，以本页与新部署手册为准。
 
 ## 关键约定
 
 - 前端所有请求以 `/api/v1` 开头；Vite 代理与 Nginx 会剥离该前缀，后端以**根路径**部署（`context-path: /`）。改这个约定必须同时改 `frontend/vite.config.js`、`deploy/nginx.conf` 和 `application.yml`，否则鉴权与 404 会一起出问题。
-- 登录接口返回 JWT，后续请求放在 `Authorization: Bearer <token>`；导出接口是浏览器直链，token 走 query 参数。
-- MySQL 建议关闭 `ONLY_FULL_GROUP_BY`（统计接口用到 `DATE_FORMAT` 分组）；`docs/02-运行步骤.md` 给出了不改全局配置的替代办法。
+- 浏览器使用 HttpOnly 会话 Cookie，写操作同时校验 CSRF；API 客户端可用 Bearer。导出通过鉴权请求下载，URL 不接受令牌。
+- 保留 MySQL 严格模式；统计分组表达式已保持一致。
 - 准确签到依赖浏览器地理位置，必须用 HTTPS 或 `localhost`；纯 HTTP 局域网访问只能走基本签到。
 
 ## 已修复的联调问题
@@ -138,19 +93,16 @@ npm run dev -- --host 0.0.0.0 --port 5173
 | `docs/01-实现步骤.md` | 从需求拆解到验收的完整实现过程、关键算法、踩坑记录 |
 | `docs/02-运行步骤.md` | 本机运行与演示的超详细步骤、排错表 |
 | `docs/03-服务器部署.md` | 阿里云/学生机部署流程与配置说明 |
-| `docs/04-接口清单.md` | 28 个 REST 接口与前端调用位置 |
-| `docs/05-数据库设计.md` | 8 张表、字段、索引与约束 |
-| `docs/06-他人运行指南.md` | **别人拿到项目怎么跑**：环境检查、三步启动、常见错误对照表 |
-| `db/README.md` | 数据库文件清单、导入方式、真实 dump 导出方法 |
+| `docs/04-接口清单.md` | 27 个 REST 接口与前端调用位置 |
+| `docs/05-数据库设计.md` | 版本化业务表、字段、索引与约束 |
 | `docs/需求规格说明书.docx` | 原始需求 |
 | `docs/软件设计报告.docx` | 依据源码反推的软件设计报告 |
 | `docs/设计思路报告.docx` | 未依赖源码、从需求推演的设计思路报告 |
 
-## 已知限制
+## 验证与边界
 
-- 未接入 Redis，登录态使用 JWT + `token_version`：停用账号、重置密码、调整角色会立即使旧令牌失效；退出仍只在前端丢弃 token。设备限频与报名 IP 限流都在单机内存计数。
-- 文件上传落本地磁盘，未接对象存储；`uploads/` 不入库。
-- 未做单元测试与自动化运行时联调，验收靠 `deploy/smoke-test.sh` 与手工主链路。
-- `start-backend.cmd` 已改为转发到根目录的 `start-all.cmd`；需要单独控制后端时，按 `docs/02-运行步骤.md` 直接执行 `java -jar`。
-- `db/data/`（MySQL 二进制数据目录，约 197MB）已在 `.gitignore` 中排除，仓库只保存 SQL 形态的数据库。它包含 TLS 私钥与运行中的 redo/临时表空间，且与 MySQL 版本强绑定，不适合版本化；要迁移数据请用 `db/campus_activity_dump.sql`。
-- 项目路径必须是纯英文。`--datadir` 含中文时 mysqld 会截断路径并启动失败，这是 MySQL 在 Windows 上的限制，脚本无法绕过。
+- `mvn -f backend/pom.xml test`；`npm --prefix frontend run check`。
+- MySQL 集成验收：`node scripts/start-isolated.mjs` → `node scripts/run-isolated.mjs` → 在 frontend 执行 `npm run test:e2e` → `node scripts/stop-isolated.mjs`。只写入新建的 campus_test_* 库，凭据在忽略的 target 中，结果按时间保留。
+- `node scripts/run-isolated.mjs cluster restore` 为本机双实例诊断及小样本恢复演练；百万行查询计划诊断使用 `scale`，不代表生产容量。
+- 实名校验已支持签名认证凭证，远端文件已支持私有 HTTPS 网关适配器；尚未接入真实校园身份提供方、短信或对象网关。设备标识只能辅助风控。
+- 尚无服务器，HTTPS、systemd、发布回滚、真实手机定位和远端备份恢复须在目标环境验收。CI 工作流已编写，未在远端执行。

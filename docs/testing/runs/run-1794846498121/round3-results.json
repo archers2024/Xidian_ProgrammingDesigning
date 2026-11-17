@@ -1,0 +1,89 @@
+{
+  "tag": "ROUND3_1794846502654",
+  "time": "2026-11-16T16:28:26.368Z",
+  "summary": {
+    "total": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "详情读取不能覆盖并发报名计数",
+      "pass": true
+    },
+    {
+      "name": "状态批量刷新不能覆盖报名计数",
+      "pass": true
+    },
+    {
+      "name": "编辑等待行锁并保留最新计数",
+      "pass": true,
+      "evidence": {
+        "code": 0
+      }
+    },
+    {
+      "name": "满额宣传页关闭报名",
+      "pass": true,
+      "evidence": {
+        "signupOpen": false
+      }
+    },
+    {
+      "name": "非法附件返回参数错误 [null]",
+      "pass": true,
+      "evidence": {
+        "code": 40001
+      }
+    },
+    {
+      "name": "非法附件返回参数错误 [{\"fileName\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "pass": true,
+      "evidence": {
+        "code": 40001
+      }
+    },
+    {
+      "name": "非法附件返回参数错误 [{\"fileName\":\"x.pdf\",\"url\":\"javascript:alert(",
+      "pass": true,
+      "evidence": {
+        "code": 40001
+      }
+    },
+    {
+      "name": "活动链接与长度边界 liveUrl",
+      "pass": true,
+      "evidence": {
+        "code": 40001
+      }
+    },
+    {
+      "name": "活动链接与长度边界 coverUrl",
+      "pass": true,
+      "evidence": {
+        "code": 40001
+      }
+    },
+    {
+      "name": "活动链接与长度边界 title,location",
+      "pass": true,
+      "evidence": {
+        "code": 40001
+      }
+    },
+    {
+      "name": "超长部门返回参数错误",
+      "pass": true,
+      "evidence": {
+        "code": 40001
+      }
+    },
+    {
+      "name": "伪装Office文件被拒绝",
+      "pass": true,
+      "evidence": {
+        "code": 40001
+      }
+    }
+  ]
+}

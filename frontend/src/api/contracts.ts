@@ -1,0 +1,5 @@
+export interface Activity {activityId:number;orgId:number;version:number;title:string;typeCode:string;location:string;signupGuid:string;status:string;approvalStatus:string;reviewRequired:boolean;signedCount:number;quota:number;startTime:string;endTime:string;signupDeadline:string;checkinPolicy:'BASIC'|'ACCURATE_REQUIRED'|'IDENTITY_REQUIRED'|'STRICT';[key:string]:unknown}
+export interface Page<T> {records:T[];total:number;current:number;size:number}
+export interface ActivitySave {title:string;typeCode:string;location:string;orgId:number;startTime:string;endTime:string;signupDeadline:string;quota:number;version?:number;introduction?:string;checkinPolicy?:Activity['checkinPolicy'];attachments?:{fileName:string;url:string;fileSize?:number}[]}
+export interface ActivityDetail {activity:Activity;attachments:{fileName:string;fileUrl:string;fileSize:number}[]}
+export interface HttpClient {get<T>(path:string,config?:unknown):Promise<T>;post<T>(path:string,data?:unknown,config?:unknown):Promise<T>;put<T>(path:string,data?:unknown):Promise<T>;delete<T>(path:string):Promise<T>}

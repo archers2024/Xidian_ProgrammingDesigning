@@ -37,38 +37,25 @@ public class StatisticsController {
     private final CheckInMapper checkinMapper;
     private final ActivityTypeMapper typeMapper;
 
-    /**
-     * 报表口径：以「时间窗口内创建、未删除、未取消」的有效活动为唯一数据集。
-     * 总量、分类、签到率都基于同一批活动，趋势在活动集合内按报名时间展开，
-     * 避免出现「活动数 0、报名人次却大于 0」这类自相矛盾的结果。
-     */
     @GetMapping("/overview")
     public R<Map<String, Object>> overview(@RequestParam(defaultValue = "30") int days) {
+        if (days < 1 || days > 366) throw new com.campus.activity.common.BusinessException("统计天数需在 1 至 366 之间");
         LocalDateTime to = LocalDateTime.now();
         LocalDateTime from = to.minusDays(days);
+        Long orgId=com.campus.activity.security.AdminContext.get().isSuper()?null:com.campus.activity.security.AdminContext.get().getOrgId();
 
-        List<Activity> validActivities = activityMapper.selectList(new LambdaQueryWrapper<Activity>()
+        Long activityCount = activityMapper.selectCount(new LambdaQueryWrapper<Activity>()
                 .eq(Activity::getDeleted, 0)
+                .eq(orgId!=null,Activity::getOrgId,orgId)
                 .ne(Activity::getStatus, "CANCELED")
                 .between(Activity::getCreateTime, from, to));
-        List<Long> activityIds = validActivities.stream().map(Activity::getActivityId).toList();
+        // All totals and breakdowns use the same cohort: valid activities created in this period.
+        List<TypeStatVO> typeStats = checkinMapper.statByType(from, to,orgId);
+        Long signupCount = typeStats.stream().mapToLong(v -> v.getSignupCount()).sum();
+        Long checkinCount = typeStats.stream().mapToLong(v -> v.getCheckinCount()).sum();
 
-        long activityCount = activityIds.size();
-        long signupCount = 0;
-        long checkinCount = 0;
-        List<TypeStatVO> typeStats = List.of();
-        List<DailyStatVO> daily = List.of();
-
-        if (!activityIds.isEmpty()) {
-            signupCount = registrationMapper.selectCount(new LambdaQueryWrapper<Registration>()
-                    .in(Registration::getActivityId, activityIds));
-            checkinCount = checkinMapper.selectCount(new LambdaQueryWrapper<CheckIn>()
-                    .in(CheckIn::getActivityId, activityIds));
-            typeStats = checkinMapper.statByType(activityIds);
-            daily = checkinMapper.statDaily(activityIds, from, to);
-        }
-
-        double rate = signupCount == 0 ? 0 : checkinCount * 100.0 / signupCount;
+        double rate = signupCount == null || signupCount == 0 ? 0
+                : checkinCount * 100.0 / signupCount;
 
         Map<String, String> typeNames = new HashMap<>();
         for (ActivityType t : typeMapper.selectList(null)) {
@@ -83,6 +70,7 @@ public class StatisticsController {
             pie.add(m);
         }
 
+        List<DailyStatVO> daily = checkinMapper.statDaily(from, to,orgId);
         List<Map<String, Object>> line = new ArrayList<>();
         for (DailyStatVO v : daily) {
             Map<String, Object> m = new HashMap<>();
@@ -92,17 +80,12 @@ public class StatisticsController {
         }
 
         Map<String, Object> data = new HashMap<>();
-        data.put("activityCount", activityCount);
-        data.put("signupCount", signupCount);
-        data.put("checkinCount", checkinCount);
+        data.put("activityCount", activityCount == null ? 0 : activityCount);
+        data.put("signupCount", signupCount == null ? 0 : signupCount);
+        data.put("checkinCount", checkinCount == null ? 0 : checkinCount);
         data.put("checkinRate", Math.round(rate * 10) / 10.0);
         data.put("typeStats", pie);
         data.put("dailyStats", line);
-        // 明确口径说明，便于前端与验收对账
-        data.put("scope", Map.of(
-                "activityFilter", "未删除且未取消的活动",
-                "timeField", "活动创建时间",
-                "days", days));
         return R.ok(data);
     }
 

@@ -1,0 +1,119 @@
+{
+  "time": "2026-11-16T16:28:22.112Z",
+  "tag": "REV_1794846501535",
+  "summary": {
+    "total": 27,
+    "passed": 27,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "默认启用审核",
+      "pass": true
+    },
+    {
+      "name": "未审核禁止发布",
+      "pass": true
+    },
+    {
+      "name": "并发提交只成功一次",
+      "pass": true
+    },
+    {
+      "name": "审核中允许改稿",
+      "pass": true
+    },
+    {
+      "name": "待审改稿撤销旧申请",
+      "pass": true
+    },
+    {
+      "name": "已撤销旧稿不能审批",
+      "pass": true
+    },
+    {
+      "name": "普通管理员不能审批",
+      "pass": true
+    },
+    {
+      "name": "驳回必须填写原因",
+      "pass": true
+    },
+    {
+      "name": "拒绝无效审批状态",
+      "pass": true
+    },
+    {
+      "name": "可驳回申请",
+      "pass": true
+    },
+    {
+      "name": "已驳回禁止发布",
+      "pass": true
+    },
+    {
+      "name": "并发审批只成功一次",
+      "pass": true
+    },
+    {
+      "name": "已通过再次编辑成功",
+      "pass": true
+    },
+    {
+      "name": "改稿后审批失效",
+      "pass": true
+    },
+    {
+      "name": "改稿后禁止直接发布",
+      "pass": true
+    },
+    {
+      "name": "审核后允许发布",
+      "pass": true
+    },
+    {
+      "name": "受控活动发布后仍可改稿",
+      "pass": true
+    },
+    {
+      "name": "历史包含多个审批版本",
+      "pass": true
+    },
+    {
+      "name": "组织审批列表隔离",
+      "pass": true
+    },
+    {
+      "name": "分页越界拒绝",
+      "pass": true
+    },
+    {
+      "name": "普通管理员不能改发布策略",
+      "pass": true
+    },
+    {
+      "name": "发布策略拒绝字符串布尔",
+      "pass": true
+    },
+    {
+      "name": "平台管理员不可自审",
+      "pass": true
+    },
+    {
+      "name": "取消活动关闭待审申请",
+      "pass": true
+    },
+    {
+      "name": "已撤销申请不能再审批",
+      "pass": true
+    },
+    {
+      "name": "平台可变更发布策略",
+      "pass": true
+    },
+    {
+      "name": "允许直发策略生效",
+      "pass": true
+    }
+  ]
+}

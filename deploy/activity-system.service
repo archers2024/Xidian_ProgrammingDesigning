@@ -1,24 +1,25 @@
-# systemd unit。setup.sh 会把 __JAVA_BIN__ 替换为本机 java 绝对路径。
-# 目标位置: /etc/systemd/system/activity-system.service
-
 [Unit]
-Description=Campus Activity Management System (Spring Boot)
+Description=Campus collaboration platform
 After=network-online.target mysql.service
 Wants=network-online.target
-Requires=mysql.service
-
 [Service]
 Type=simple
 User=activity
 Group=activity
-WorkingDirectory=/opt/activity-system
-# 2G 内存: JVM 堆限制 512m，给 MySQL 8 留足空间
-ExecStart=__JAVA_BIN__ -Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Djava.awt.headless=true -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai -jar /opt/activity-system/app/activity-system-1.0.0.jar --spring.config.additional-location=file:/opt/activity-system/config/application-prod.yml
+WorkingDirectory=/opt/activity-system/state
+EnvironmentFile=/etc/activity-system/runtime.env
+ExecStart=/usr/bin/java -Xms128m -Xmx512m -XX:+UseG1GC -Djava.awt.headless=true -Duser.timezone=Asia/Shanghai -jar /opt/activity-system/current/app/activity-system-1.0.0.jar --spring.config.additional-location=file:/opt/activity-system/current/deploy/application-prod.yml
 Restart=on-failure
-RestartSec=10
-StandardOutput=append:/opt/activity-system/logs/backend.log
-StandardError=append:/opt/activity-system/logs/backend.log
+RestartSec=5
+TimeoutStopSec=45
 SuccessExitStatus=143
-
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/activity-system/state
+UMask=0077
+StandardOutput=journal
+StandardError=journal
 [Install]
 WantedBy=multi-user.target

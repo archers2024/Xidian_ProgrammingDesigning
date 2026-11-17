@@ -1,0 +1,215 @@
+{
+  "time": "2026-11-16T16:28:21.377Z",
+  "tag": "PLAT_1794846500749",
+  "summary": {
+    "total": 38,
+    "passed": 38,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "创建组织管理员A",
+      "pass": true
+    },
+    {
+      "name": "创建组织管理员B",
+      "pass": true
+    },
+    {
+      "name": "创建活动自动绑定组织",
+      "pass": true
+    },
+    {
+      "name": "组织A可查看本组织活动",
+      "pass": true
+    },
+    {
+      "name": "组织B列表隔离",
+      "pass": true
+    },
+    {
+      "name": "跨组织拒绝 GET ",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "跨组织拒绝 PUT ",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "跨组织拒绝 DELETE ",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "跨组织拒绝 POST /publish",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "跨组织拒绝 PUT /checkin-enabled",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "跨组织拒绝 GET /registrations",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "跨组织拒绝 GET /checkins",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "跨组织拒绝 GET /registrations/export",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "跨组织拒绝 GET /checkins/export",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "跨组织拒绝 GET /qrcode",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "跨组织拒绝 GET /checkin-config",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "跨组织拒绝 GET /reviews",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "跨组织拒绝 POST /submit-review",
+      "pass": true,
+      "evidence": {
+        "http": 403,
+        "code": 40002
+      }
+    },
+    {
+      "name": "拒绝伪造组织创建",
+      "pass": true
+    },
+    {
+      "name": "拒绝活动转移组织",
+      "pass": true
+    },
+    {
+      "name": "拒绝跨组织动态码",
+      "pass": true
+    },
+    {
+      "name": "普通管理员不能管理组织",
+      "pass": true
+    },
+    {
+      "name": "普通管理员不能看平台审计",
+      "pass": true
+    },
+    {
+      "name": "组织可见列表隔离",
+      "pass": true
+    },
+    {
+      "name": "组织B统计不含其他组织",
+      "pass": true
+    },
+    {
+      "name": "组织A统计包含本组织",
+      "pass": true
+    },
+    {
+      "name": "新组织默认要求审核",
+      "pass": true
+    },
+    {
+      "name": "公开活动可读取",
+      "pass": true
+    },
+    {
+      "name": "组织停用撤销访问",
+      "pass": true
+    },
+    {
+      "name": "组织停用拒绝登录",
+      "pass": true
+    },
+    {
+      "name": "组织停用关闭宣传",
+      "pass": true
+    },
+    {
+      "name": "组织停用关闭报名",
+      "pass": true
+    },
+    {
+      "name": "组织停用关闭签到",
+      "pass": true
+    },
+    {
+      "name": "重新启用不恢复旧令牌",
+      "pass": true
+    },
+    {
+      "name": "审计日志可分页读取",
+      "pass": true
+    },
+    {
+      "name": "默认组织不可停用",
+      "pass": true
+    },
+    {
+      "name": "重复组织编码拒绝",
+      "pass": true
+    },
+    {
+      "name": "拒绝小数组织状态",
+      "pass": true
+    }
+  ]
+}

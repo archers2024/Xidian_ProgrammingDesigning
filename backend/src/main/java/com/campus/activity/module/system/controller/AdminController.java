@@ -1,11 +1,8 @@
 package com.campus.activity.module.system.controller;
 
 import com.campus.activity.common.R;
-import com.campus.activity.module.system.dto.AdminCreateRequest;
+import com.campus.activity.module.system.entity.Admin;
 import com.campus.activity.module.system.service.AdminService;
-import com.campus.activity.module.system.vo.AdminSummary;
-
-import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.*;
 
@@ -23,14 +20,15 @@ public class AdminController {
     private final AdminService adminService;
 
     @GetMapping("/accounts")
-    public R<List<AdminSummary>> list() {
+    public R<List<Admin>> list() {
         return R.ok(adminService.list());
     }
 
+    @GetMapping("/accounts/page")
+    public R<com.baomidou.mybatisplus.core.metadata.IPage<Admin>> page(@RequestParam(defaultValue="1")long current,@RequestParam(defaultValue="20")long size,@RequestParam(required=false)String keyword){return R.ok(adminService.page(current,size,keyword));}
     @PostMapping("/accounts")
-    public R<Void> create(@Valid @RequestBody AdminCreateRequest req) {
-        adminService.createAdmin(req);
-        return R.ok();
+    public R<Map<String,String>> create(@RequestBody Admin admin) {
+        return R.ok(Map.of("temporaryPassword", adminService.createAdmin(admin)));
     }
 
     @PutMapping("/accounts/{id}/status")
@@ -39,11 +37,9 @@ public class AdminController {
         return R.ok();
     }
 
-    /** 重置为一次性强密码，明文仅在本次响应中返回一次，由超管转交本人。 */
     @PutMapping("/accounts/{id}/password")
-    public R<Map<String, String>> reset(@PathVariable Long id) {
-        String tempPassword = adminService.resetPassword(id);
-        return R.ok(Map.of("tempPassword", tempPassword));
+    public R<Map<String,String>> reset(@PathVariable Long id) {
+        return R.ok(Map.of("temporaryPassword", adminService.resetPassword(id)));
     }
 
     public AdminController(AdminService adminService) {
